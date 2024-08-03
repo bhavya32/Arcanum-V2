@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Books | Arcanum</title>
+  <link rel="icon" href="../static/arcanum.png" type="image/x-icon">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+  <link href="../static/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <header class="hero d-flex align-items-center  bg-light">
+    <div style="width: 100%;" class="navbar navbar-expand-lg navbar-light">
+      <div class="container">
+        <div>
+          <img src="../static/arcanum.png" style="max-height:30px; margin-right: 0px;">
+          <a class="navbar-brand" href="/">rcanum</a>
+        </div>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+          aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-end navbar-nav" id="navbarNav">
+          <a class="nav-link" href="/">Home</a>
+          <a class="nav-link active" href="{{url_for('books_list')}}">Search</a>
+          <a class="nav-link" href="/sections">Sections</a>
+          <a class="nav-link" href="/#popular">Popular</a>
+          <a class="nav-link" href="/#latest">Latest</a>
+          <div class="dropdown">
+            <a class=" dropdown-toggle nav-link" href="#" data-bs-toggle="dropdown">
+              Account
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="{{url_for('dashboard')}}">Dashboard</a></li>
+              <li><a class="dropdown-item" href="{{url_for('logout')}}">Log Out</a></li>
+
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div id="body">
+    <div class=" container mb-4">
+      <div class="container body">
+
+
+        <form>
+          <div class="row">
+            <div class="col">
+              <label>Book Name</label>
+              <input value="{{filters[0]}}" type="text" name="book" class="form-control" placeholder="Book name">
+            </div>
+            <div class="col">
+              <label>Author Name</label>
+              <input value="{{filters[1]}}" type="text" name="author" class="form-control" placeholder="Author name">
+            </div>
+            <div class="col">
+              <label>Section</label>
+              <select name="section" class="form-select">
+                <option value="">Any</option>
+                {% for section in sections %}
+                <option value="{{section.id}}" {% if section.id|string == filters[2] %} selected {% endif %}>{{section.name}}</option>  
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col">
+              <label>Sort By</label>
+              <select name="sort" class="form-select">
+                <option selected disabled>Select</option>
+                <option value="title" {% if "title" == filters[3] %} selected {% endif %}>Book Name (Asc.)</option>
+                <option value="rating" {% if "rating" == filters[3] %} selected {% endif %}>Rating (Desc.)</option>
+                <option value="reads" {% if "reads" == filters[3] %} selected {% endif %}>Total Reads (Desc.)</option>
+              </select>
+            </div>
+            <div class="col" style="display: flex; align-items: flex-end;">
+              <button type="submit" class="btn btn-dark"> Filter </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="float-profile container">
+
+      <div class="container body" style="margin-bottom: 50px;">
+        <div class="d-flex flex-row justify-content-between">
+          <h1>Books</h1>
+          <div class="d-flex align-items-center">
+            {% if current_user.role == "librarian" %}
+            <a class="btn btn-dark" href="{{url_for('book_add')}}">Upload New</a>
+            {% endif %}
+          </div>
+        </div>
+        <table id="issueList" class="table table-hover">
+          <thead>
+            <th>S. No.</th>
+            <th>Book Name</th>
+            <th>Author Name</th>
+            <th>Rating</th>
+            <th>Total Reads</th>
+            <th></th>
+
+          </thead>
+          <tbody>
+            {% if books|length==0 %}
+            <tr>
+              <td colspan="6" class="text-muted">No results available.</td>
+            </tr>
+            {% endif %}
+            {% for book in books %}
+            <tr>
+              <td>{{loop.index}}.</td>
+              <td>{{book.title}}</td>
+              <td>{{book.authors}}</td>
+              <td>{{book.rating}}</td>
+              <td>{{book.reads}}</td>
+              <td>
+                <div>
+
+                  <a href="/book/{{book.id}}" class="btn btn-dark">View</a>
+                  {% if current_user.role == "librarian" %}
+                  <a href="/book/{{book.id}}/delete" class="btn btn-dark">Delete</a>
+                  {% endif %}
+
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>

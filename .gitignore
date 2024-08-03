@@ -1,0 +1,7 @@
+__pycache__
+lms.sqlite3
+static/books/*
+static/pdfs/*
+static/sections/*
+dist
+node_modules
