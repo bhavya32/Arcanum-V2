@@ -11,7 +11,9 @@ import Section from '@/views/Section.vue'
 import SectionAdd from '@/views/SectionAdd.vue'
 import EditSection from '@/views/EditSection.vue'
 import EditBook from '@/views/EditBook.vue'
-
+import UsersList from '@/views/admin/UsersList.vue'
+import UserDash from '@/components/userDash.vue'
+import BookRead from '@/views/BookRead.vue'
 import { AuthStore } from '../stores/main.js'
 
 const router = createRouter({
@@ -45,12 +47,27 @@ const router = createRouter({
     {
       path: '/book/:id',
       name: 'book',
-      component: Book
+      component: Book,
+    },
+    {
+      path: '/book/:id/read',
+      name: 'book_read',
+      component: BookRead
     },
     {
       path: '/section/:id',
       name: 'section',
       component: Section
+    },
+    {
+      path: '/users_list',
+      name: 'users_list',
+      component: UsersList
+    },
+    {
+      path:  '/user/:id',
+      name: 'user_dash',
+      component: UserDash
     },
     {
       path: '/section/:id/edit',

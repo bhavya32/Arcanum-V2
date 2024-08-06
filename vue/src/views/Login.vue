@@ -34,7 +34,7 @@ async function login(form){
         return response.json()
     }).then(data => {
         console.log(data)
-        var user_info = {name: data["name"], role: data["role"], username: data["username"]}
+        var user_info = {name: data["name"], role: data["role"], username: data["username"], id: data["id"]}
         s.login(data["access_token"], user_info)
         router.replace({ path: '/dashboard' })
     }).catch(err => {

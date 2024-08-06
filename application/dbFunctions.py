@@ -172,7 +172,7 @@ def getIssued(id):
     return r
 
 def getPastIssued(id):
-    s = History.query.filter_by(user=id).all()
+    s = History.query.filter_by(user=id).order_by(desc(History.end)).all()
     r = []
     for i in s:
         bk = getBookByID(i.book)
@@ -412,6 +412,7 @@ def flipTier(uid):
     else:
         u.tier = 1
     db.session.commit()
+    return u.tier
 
 def getAllUsersFiltered(username, tier):
     
@@ -421,6 +422,19 @@ def getAllUsersFiltered(username, tier):
     else:
         users = User.query.filter_by(role="student").filter(User.username.like(username)).filter_by(tier=tier).all()
     return users
+
+def getChartData_api():
+    query = "select books.title, count(books.title) as num from issued,books where books.id = issued.book GROUP BY title order by num desc limit 5"
+    r = db.session.execute(db.text(query))
+    group = []
+    data = []
+    total = 0
+    for i in r:
+        group.append(i[0])
+        data.append(i[1])
+        total += i[1]
+    group = [ '\n'.join(wrap(l, 20)) for l in group ]
+    return {"group":group, "data":data}
 
 def getChartData():
     query = "select books.title, count(books.title) as num from issued,books where books.id = issued.book GROUP BY title order by num desc limit 5"

@@ -7,10 +7,10 @@ from werkzeug.utils import secure_filename
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager, current_user as curr_user
 from .database import login_manager
-from .dbFunctions import AutoApprove, addAuthorship, addSectionContent, approveRequest, checkAA, checkIssued, createBook, createRequest, createSection, delSectionContent, deleteAuthors, deleteBook, deleteSection, fetchAllRatings, fetchRating, flipTier, getAllAuthors, getAllBooks, getAllBooksFiltered, getAllIssued, getAllSections, getAllUsers, getAllUsersFiltered, getBookByID, getChartData, getIssued, getLatestEbooks, getPastIssued, getPendingRequests, getPopularEbooks, getRequestStatus, getRequested, getSectionContent, getSectionInfo, getUser, createUser, deleteUser, getUserByID, maxBorrowTime, maxIssueBooks, rejectRequest, returnBook, updateBook, updatePolicy, updateRating, updateSection
+from .dbFunctions import AutoApprove, addAuthorship, addSectionContent, approveRequest, checkAA, checkIssued, createBook, createRequest, createSection, delSectionContent, deleteAuthors, deleteBook, deleteSection, fetchAllRatings, fetchRating, flipTier, getAllAuthors, getAllBooks, getAllBooksFiltered, getAllIssued, getAllSections, getAllUsers, getAllUsersFiltered, getBookByID, getChartData, getChartData_api, getIssued, getLatestEbooks, getPastIssued, getPendingRequests, getPopularEbooks, getRequestStatus, getRequested, getSectionContent, getSectionInfo, getUser, createUser, deleteUser, getUserByID, maxBorrowTime, maxIssueBooks, rejectRequest, returnBook, updateBook, updatePolicy, updateRating, updateSection
 from .models import Book
 import hashlib
-from .util import librarian, admin
+from .util import librarian, admin as adminFilter
 
 from flask_cors import CORS
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -31,7 +31,7 @@ def protected():
 
 @app.route("/protected2", methods=["GET"])
 @jwt_required()
-@admin
+@adminFilter
 def protected2():
     #current_user = get_jwt_identity()
     return jsonify(logged_in_as=curr_user.fname), 200
@@ -66,7 +66,7 @@ def login_api():
     user = getUser(username)
     if user != None and user.password == password and user.role == userType:
         access_token = create_access_token(identity=username, additional_claims={"role": user.role})
-        return jsonify(access_token=access_token, username=user.username, role=user.role, name=user.fname + " " + user.lname)
+        return jsonify(access_token=access_token, username=user.username, role=user.role, name=user.fname + " " + user.lname, id=user.id), 200
     else:
         return jsonify({"msg": "Bad username or password"}), 401
     
@@ -225,6 +225,16 @@ def book(id):
     return render_template("book.html", book=book, user=current_user, sections=getAllSections(), issued=issued, score = score, allratings= allratings, requested= requested)
 
 
+@app.route("/api/book/<int:id>/request")
+@jwt_required()
+def request_book_api(id):
+    try:
+        createRequest(curr_user.id, id)
+    except:
+        return jsonify({"status": "error", "msg": "You have reached the max borrowing cap. Please return a book and try again."})
+    checkAA(curr_user.id, id)
+    return jsonify({"status": "success"})
+
 @app.route("/book/<int:id>/request", methods=["GET"])
 @login_required
 def request_book(id):
@@ -235,6 +245,13 @@ def request_book(id):
     checkAA(current_user.id, id)
     return redirect(url_for("book", id=id))
 
+@app.route("/api/request/<int:bid>/cancel")
+@jwt_required()
+def request_cancel_api(bid):
+    uid = curr_user.id
+    rejectRequest(uid, bid)
+    return jsonify({"status": "success"})
+
 @app.route("/requests/<int:bid>/cancel")
 @login_required
 def request_cancel(bid):
@@ -244,7 +261,7 @@ def request_cancel(bid):
 
 @app.route("/api/book/<int:bid>/section/<int:sid>/add")
 @jwt_required()
-@admin
+@adminFilter
 def section_book_add_api(bid, sid):
     addSectionContent(bid, sid)
     return jsonify({"status": "success"})
@@ -260,7 +277,7 @@ def section_book_add(bid):
 
 @app.route("/api/book/<int:bid>/section/<int:sid>/remove")
 @jwt_required()
-@admin
+@adminFilter
 def section_book_remove_api(bid, sid):
     delSectionContent(bid, sid)
     return jsonify({"status": "success"})
@@ -359,7 +376,7 @@ def section_create():
 
 @app.route("/api/adminDashboard")
 @jwt_required()
-@admin
+@adminFilter
 def admin_dashboard_api():
     requests = getPendingRequests()
     users = getAllUsers()
@@ -386,6 +403,25 @@ def admin():
 def adminchart():
     buff = getChartData()
     return send_file(buff, mimetype='image/jpg')
+
+@app.route("/api/admin/chart")
+@jwt_required()
+@adminFilter
+def admin_chart():
+    data = getChartData_api()
+    return jsonify(data)
+
+@app.route("/api/admin/policy")
+@jwt_required()
+@adminFilter
+def admin_policy():
+    #get params from query
+    t = ["MaxBorrowDays", "MaxBorrowBooks", "AutoApprove"]
+    for i in t:
+        x = request.args.get(i)
+        updatePolicy(i, request.args.get(i))
+    return jsonify({"status": "success"})
+
 
 @app.route("/admin", methods=["POST"])
 @login_required
@@ -459,6 +495,13 @@ def book_add():
 
     return render_template("admin/book_add.html", authors = authors)
 
+@app.route("/api/request/<int:uid>/<int:bid>/approve")
+@jwt_required()
+@adminFilter
+def request_approve_api(uid, bid):
+    approveRequest(uid, bid)
+    return jsonify({"status": "success"})
+
 @app.route("/admin/requests/approve/<int:uid>/<int:bid>")
 @login_required
 @librarian
@@ -467,6 +510,13 @@ def request_approve(uid, bid):
     if "return" in request.args:
         return redirect(url_for("user_details",uid=uid))
     return redirect(url_for("pending_requests"))
+
+@app.route("/api/request/<int:uid>/<int:bid>/reject")
+@jwt_required()
+@adminFilter
+def request_reject_api(uid, bid):
+    rejectRequest(uid, bid)
+    return jsonify({"status": "success"})
 
 @app.route("/admin/requests/reject/<int:uid>/<int:bid>")
 @login_required
@@ -495,6 +545,19 @@ def pending_requests():
 def issued_books():
     return render_template("admin/issued.html", issued = getAllIssued())
 
+@app.route("/api/book/<int:bid>/return")
+@jwt_required()
+def return_book_api(bid):
+    returnBook(curr_user.id, bid)
+    return jsonify({"status": "success"})
+
+@app.route("/api/revoke/<int:uid>/<int:bid>")
+@jwt_required()
+@adminFilter
+def revoke_book_api(uid, bid):
+    returnBook(uid, bid)
+    return jsonify({"status": "success"})
+
 @app.route("/admin/issued/revoke/<int:uid>/<int:bid>")
 @login_required
 @librarian
@@ -504,6 +567,20 @@ def revoke_book(uid, bid):
         return redirect(url_for("user_details",uid=uid))
     else:
         return redirect(url_for("issued_books"))
+
+@app.route("/api/users")
+@jwt_required()
+@adminFilter
+def users_api():
+    fusername = "%%"
+    tier = -1
+    if "username" in request.args:
+        fusername = "%" + request.args["username"] + "%"
+    if "tier" in request.args and request.args["tier"].isdigit():
+        tier = int(request.args["tier"])
+    
+    users = getAllUsersFiltered(fusername, tier)
+    return jsonify([i.to_dict() for i in users])
 
 @app.route("/admin/users")
 @login_required
@@ -518,6 +595,38 @@ def active_users():
     
     users = getAllUsersFiltered(fusername, tier)
     return render_template("admin/users.html", users = users)
+
+
+@app.route("/api/user_info/<int:uid>")
+@jwt_required()
+@adminFilter
+def my_details(uid):
+    user = getUserByID(uid)
+    books = getIssued(uid)
+    past = getPastIssued(uid)
+    req = getRequested(uid)
+    for i in range(len(books)):
+        issued = books[i].start
+        books[i] = getBookByID(books[i].book).to_dict()
+        books[i]["start"] = issued
+        books[i]["end"] = issued + datetime.timedelta(days=maxBorrowTime())
+    return jsonify({"user": user.to_dict(), "books": books, "past": [i.to_dict() for i in past], "req": [i.to_dict() for i in req]})
+
+
+@app.route("/api/user_info")
+@jwt_required()
+def user_info_api():
+    uid = curr_user.id
+    user = curr_user
+    books = getIssued(uid)
+    past = getPastIssued(uid)
+    req = getRequested(uid)
+    for i in range(len(books)):
+        issued = books[i].start
+        books[i] = getBookByID(books[i].book).to_dict()
+        books[i]["start"] = issued
+        books[i]["end"] = issued + datetime.timedelta(days=maxBorrowTime())
+    return jsonify({"user": user.to_dict(), "books": books, "past": [i.to_dict() for i in past], "req": [i.to_dict() for i in req]})
 
 @app.route("/admin/user/<int:uid>")
 @login_required
@@ -541,6 +650,13 @@ def delete_user(uid):
     deleteUser(uid)
     return redirect(url_for("active_users"))
 
+@app.route("/api/user/<int:uid>/flipTier")
+@jwt_required()
+@adminFilter
+def tier_user_api(uid):
+    tier = flipTier(uid)
+    return jsonify({"status": "success", "tier": tier})
+
 @app.route("/admin/user/<int:uid>/flipTier")
 @login_required
 @librarian
@@ -554,6 +670,32 @@ def tier_user(uid):
 def book_edit_view(id):
     book=getBookByID(id)
     return render_template("admin/book_edit.html", book=book)
+
+@app.route("/api/book/<int:id>/edit", methods=["POST"])
+@jwt_required()
+@adminFilter
+def book_edit_api(id):
+    name=request.form["book_name"]
+    desc=request.form["book_desc"]
+    #author=request.form["author_name"]
+    authors = request.form.getlist("author_name")
+    book = updateBook(id, name,desc)
+    try:
+        pdf = request.files["book_pdf"]
+        if pdf.filename != "":
+            pdf.save(os.path.join("./static/pdfs", secure_filename(str(book.id) + ".pdf")))
+    except:
+        pass
+    try:
+        img=request.files["book_img"]
+        if img.filename != "":
+            img.save(os.path.join("./static/books", secure_filename(str(book.id))))
+    except:
+        pass
+    deleteAuthors(id)
+    for i in authors:
+        addAuthorship(id, i)
+    return jsonify({"status": "success"})
 
 @app.route("/book/<int:id>/edit", methods=["POST"])
 @login_required
