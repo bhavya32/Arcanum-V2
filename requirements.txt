@@ -5,3 +5,5 @@ matplotlib
 flask-cors
 Flask-JWT-Extended
 SQLAlchemy-serializer
+redis
+celery[redis]

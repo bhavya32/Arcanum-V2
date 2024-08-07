@@ -28,14 +28,22 @@ def updatePolicy(n, v):
     i = Policy.query.filter_by(name=n).first()
     i.value = v
     db.session.commit()
-def createUser(fname, lname, username, password):
+def createUser(fname, lname, username, password, email):
     u = User()
     u.username = username
     u.fname = fname
     u.lname = lname
     u.password = password
-
+    u.email = email
     db.session.add(u)
+    db.session.commit()
+    return u
+def updateInfo(id, fname, lname, email, password):
+    u = User.query.filter_by(id=id).first()
+    u.fname = fname
+    u.lname = lname
+    u.email = email
+    u.password = password
     db.session.commit()
     return u
 

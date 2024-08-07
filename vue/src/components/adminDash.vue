@@ -4,6 +4,7 @@ import {useRoute,  RouterLink} from 'vue-router'
 import fetchData from '../helper.js'
 import { AuthStore } from '../stores/main.js'
 import router from '../router/index.js'
+import API_URL from '../constants.js'
 var s = AuthStore()
 var dashVars = ref({
     issued: 0,
@@ -18,7 +19,9 @@ var dashVars = ref({
 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Colors } from 'chart.js'
 import { Doughnut } from 'vue-chartjs'
-
+var exportDisabled = ref(false)
+var showOverlay = ref(false)
+var exportsHistory = ref([])
 ChartJS.register(ArcElement, Tooltip,Legend,Colors)
 const chartOptions = {
   responsive: true,
@@ -35,7 +38,16 @@ var chartData = ref({
   ],
 })
 
+async function exportData() {
+    exportDisabled.value = true
+    var data = await fetchData('/api/export')
+}
 
+async function viewExports() {
+    var data = await fetchData('/api/export_status')
+    exportsHistory.value = data
+    showOverlay.value = true
+}
 
 fetchData('/api/adminDashboard').then(data => {
     dashVars.value = {...data}
@@ -142,10 +154,10 @@ async function updatePolicy(form) {
         </div>
     </div>
 
-    <div class=" container d-flex flex-row justify-content-evenly float-profile">
-        <div>
+    <div class=" container float-profile">
+        <div class=" container d-flex flex-row justify-content-evenly ">
           
-        </div>
+        
         <div style="width: 100%;">
             <h3 style="margin-top: 10px; margin-left: 10px;">Top 5 Books</h3>
             <div style="max-height: 90%">
@@ -183,11 +195,72 @@ async function updatePolicy(form) {
             </form>
         </div>
     </div>
+    <div class="adminbuttons">
+        <button class="btn btn-dark" :disabled="exportDisabled" @click="exportData()">{{exportDisabled? "Export Request Received" :"Export Activity History"}}</button>
+        <button class="btn btn-dark" @click="viewExports()">View Recent Exports</button>
+    </div>
+    </div>
+    <div class="overlay" v-show="showOverlay">
+          <div class="overlay-content">
+            <i class="bi bi-x-lg" @click="showOverlay = false" style="position: absolute; top: 20px; right: 20px;"></i>
+
+            <h2 class="mb-2">Recent Export Requests</h2>
+            <table class="table table-hover">
+                <thead>
+                    <th> S. No. </th>
+                    <th> Time </th>
+                    <th> Status </th>
+                    <th> Result </th>
+                </thead>
+                <tbody>
+                    <tr v-for="(i, index) in exportsHistory">
+                        <td>{{ index + 1 }}.</td>
+                        <td>{{ (new Date(i.time.slice(0,-4))).toLocaleTimeString() }}</td>
+                        <td>{{ i.status }}</td>
+                        
+                        <td><button class="btn btn-dark" :disabled="i.status != 'SUCCESS'" @click="window.open(API_URL + '/static/exports/'+i.result, '_blank');">Download</button></td>
+                    </tr>
+                </tbody>
+            </table>
+          </div>
+    </div>
+    
     <div style="min-height: 15px"></div>
 </template>
 
 <style scoped>
 .updated {
     color: green;
+}
+.adminbuttons {
+    display: flex;
+    justify-content: center;
+    margin: 20px;
+    button {
+        margin: 10px;
+    }
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.overlay-content {
+  background-color: white;
+  padding: 40px;
+  border-radius: 10px;
+  max-width: 80%;
+  max-height: 50%;
+  position: relative;
+  overflow-y: auto
 }
 </style>

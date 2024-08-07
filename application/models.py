@@ -29,6 +29,7 @@ class User(db.Model, SerializerMixin, UserMixin):
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.text("CURRENT_TIMESTAMP"))
     role = db.Column(db.String(255), nullable=False, server_default=db.text("student"))
     tier = db.Column(db.Integer, nullable=False, server_default=db.text("0"))
+    email = db.Column(db.String(255), nullable=False)
     def get_id(self):
         return(self.username)
 

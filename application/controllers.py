@@ -7,10 +7,11 @@ from werkzeug.utils import secure_filename
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager, current_user as curr_user
 from .database import login_manager
-from .dbFunctions import AutoApprove, addAuthorship, addSectionContent, approveRequest, checkAA, checkIssued, createBook, createRequest, createSection, delSectionContent, deleteAuthors, deleteBook, deleteSection, fetchAllRatings, fetchRating, flipTier, getAllAuthors, getAllBooks, getAllBooksFiltered, getAllIssued, getAllSections, getAllUsers, getAllUsersFiltered, getBookByID, getChartData, getChartData_api, getIssued, getLatestEbooks, getPastIssued, getPendingRequests, getPopularEbooks, getRequestStatus, getRequested, getSectionContent, getSectionInfo, getUser, createUser, deleteUser, getUserByID, maxBorrowTime, maxIssueBooks, rejectRequest, returnBook, updateBook, updatePolicy, updateRating, updateSection
+from .dbFunctions import AutoApprove, addAuthorship, addSectionContent, approveRequest, checkAA, checkIssued, createBook, createRequest, createSection, delSectionContent, deleteAuthors, deleteBook, deleteSection, fetchAllRatings, fetchRating, flipTier, getAllAuthors, getAllBooks, getAllBooksFiltered, getAllIssued, getAllSections, getAllUsers, getAllUsersFiltered, getBookByID, getChartData, getChartData_api, getIssued, getLatestEbooks, getPastIssued, getPendingRequests, getPopularEbooks, getRequestStatus, getRequested, getSectionContent, getSectionInfo, getUser, createUser, deleteUser, getUserByID, maxBorrowTime, maxIssueBooks, rejectRequest, returnBook, updateBook, updateInfo, updatePolicy, updateRating, updateSection
 from .models import Book
 import hashlib
 from .util import librarian, admin as adminFilter
+from application import tasks
 
 from flask_cors import CORS
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -18,6 +19,18 @@ cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 app.config["JWT_SECRET_KEY"] = ".......4" 
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(days=15)
 jwt = JWTManager(app)
+recent_export_tasks=[]
+
+@app.route("/api/just_simple_task")
+def just_simple_task():
+    tsk = tasks.create_history_csv.delay()
+    return jsonify({"status": "success", "task_id": tsk.id})
+
+@app.route("/api/just_simple_task_status")
+def just_simple_task_status():
+    task_id = request.args["task_id"]
+    task = tasks.create_history_csv.AsyncResult(task_id)
+    return jsonify({"status": task.status, "result": task.result})
 
 @jwt.user_lookup_loader
 def user_lookup_callback(_jwt_header, jwt_data):
@@ -45,6 +58,26 @@ def load_user(user_id):
 @login_manager.unauthorized_handler
 def unauthorized():
     return redirect(url_for('login'))
+
+@app.route("/api/export")
+@jwt_required()
+@adminFilter
+def export():
+    #run after 15 seconds
+    tsk = tasks.create_history_csv.apply_async(countdown=15)
+    curr_time = datetime.datetime.now()
+    recent_export_tasks.append({"task_id": tsk.id, "time": curr_time})
+    return jsonify({"status": "success", "task_id": tsk.id})
+
+@app.route("/api/export_status")
+@jwt_required()
+@adminFilter
+def export_status():
+    status = []
+    for i in recent_export_tasks:
+        task = tasks.create_history_csv.AsyncResult(i["task_id"])
+        status.append({"task_id": i["task_id"], "status": task.status, "result": task.result, "time": i["time"]})
+    return jsonify(status)
 
 @app.route("/api/sections")
 def sections_api():
@@ -104,6 +137,22 @@ def username_availability():
         available = False
     return jsonify({"available": available}), 200
 
+@app.route("/api/change_info", methods=["POST"])
+@jwt_required()
+def change_info():
+    r = request.get_json()
+    fname = r["fname"]
+    lname = r["lname"]
+    email = r["email"]
+    password = curr_user.password
+    if r["password"] != "":
+        password = hashlib.md5(r["password"].encode('utf-8')).hexdigest()
+    updateInfo(curr_user.id, fname, lname, email, password)
+    access_token = create_access_token(identity=curr_user.username, additional_claims={"role": curr_user.role})
+    return jsonify(status="success",access_token=access_token, username=curr_user.username, role=curr_user.role, name=curr_user.fname + " " + curr_user.lname, id=curr_user.id)
+    
+
+
 @app.route("/api/register", methods=["POST"])
 def register_api():
     r = request.get_json()
@@ -111,11 +160,12 @@ def register_api():
     lname = r["lname"]
     username = r["username"]
     password = r["password"]
+    email = r["email"]
     password = hashlib.md5(password.encode('utf-8')).hexdigest()
     user = getUser(username)
     if user != None:
         return jsonify({"msg": "Username already exists"}), 401
-    user = createUser(fname, lname, username, password)
+    user = createUser(fname, lname, username, password, email)
     access_token = create_access_token(identity=username, additional_claims={"role": user.role})
     return jsonify(status="success",access_token=access_token, username=user.username, role=user.role, name=user.fname + " " + user.lname, id=user.id)
 

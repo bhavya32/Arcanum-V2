@@ -10,5 +10,5 @@ const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
-
+app.config.globalProperties.window = window
 app.mount('#app')

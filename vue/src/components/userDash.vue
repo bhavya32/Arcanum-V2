@@ -61,7 +61,7 @@ async function approveRequest(book_id){
 <template>
     <div id="body">
   <div class="float-profile container">
-    <div class="container d-flex flex-row justify-content-between"  style="margin-bottom: 20px; font-size: large;">
+    <div class="container d-flex flex-row justify-content-between info"  style="margin-bottom: 20px; font-size: large; flex-wrap: wrap;">
         <div>
             Name - <b>{{userData.user.fname}} {{userData.user.lname}}</b>
         </div>
@@ -69,7 +69,7 @@ async function approveRequest(book_id){
             Username - <b>{{userData.user.username}}</b>
         </div>
         <div>
-            Register Date - <b>{{dt(userData.user.created_at)}}</b>
+            Email - <b>{{userData.user.email}}</b>
         </div>
         <div>
             Tier - <b>
@@ -77,6 +77,7 @@ async function approveRequest(book_id){
                 <template v-else> PAID </template>
             </b>
         </div>
+        
     </div>
     <div class="container" style="margin-bottom: 50px;">
       <h1>Requested Books</h1>
@@ -157,7 +158,7 @@ async function approveRequest(book_id){
         
     </div>
 
-    <div class="container">
+    <div class="container" style="margin-bottom: 50px;">
       <h1>Past Books</h1>
       <table id="issueList" class="table table-hover">
           <thead>
@@ -186,9 +187,20 @@ async function approveRequest(book_id){
       </table>
       
   </div>
+
+  <div v-if="!isAdmin" class="container" style="margin-bottom: 50px;">
+        <h2>Account Settings</h2>
+        <div class="d-flex flex-row justify-content-between">
+            <div>
+                <button class="btn btn-dark" @click="router.push({ path: '/change_info' })">Change Info</button>
+            </div>
+            
+        </div>
+  </div>
 	
 </div>
 </div>
+<div style="height: 10px"></div>
 </template>
 <style scoped>
 tr {
@@ -196,5 +208,9 @@ tr {
 }
 button {
     margin: 0px 10px
+}
+
+.info div{
+    margin: 10px 10px
 }
 </style>

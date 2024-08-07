@@ -17,6 +17,7 @@ import BookRead from '@/views/BookRead.vue'
 import Requests from '@/views/admin/Requests.vue'
 import IssuedList from '@/views/admin/IssuedList.vue'
 import Register from '@/views/Register.vue'
+import EditUser from '@/views/EditUser.vue'
 import { AuthStore } from '../stores/main.js'
 
 const router = createRouter({
@@ -106,6 +107,10 @@ const router = createRouter({
       path: '/issued_list',
       name: 'issued_list',
       component: IssuedList
+    },{
+      path: '/change_info',
+      name: 'change_info',
+      component: EditUser
     },
     {
       path: '/error',
