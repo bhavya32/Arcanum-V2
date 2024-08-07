@@ -74,7 +74,7 @@ async function login(form){
 			</form>
 			<div class=".d-flex">
 				<div>
-					<a href="/register" class="link-dark"> Create a new Account?</a>
+					<RouterLink to="/register" class="link-dark"> Create a new Account?</RouterLink>
 				</div>
 
 			</div>

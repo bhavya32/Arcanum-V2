@@ -4,7 +4,6 @@ import {useRoute,  RouterLink} from 'vue-router'
 import { AuthStore } from '../stores/main.js'
 import fetchData from '../helper.js'
 import { computed } from 'vue'
-import Rating from '../components/Rating.vue'
 import router from '../router/index.js'
 var s = AuthStore()
 var userID = parseInt(useRoute().params.id?.toString())

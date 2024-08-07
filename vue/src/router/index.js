@@ -14,6 +14,9 @@ import EditBook from '@/views/EditBook.vue'
 import UsersList from '@/views/admin/UsersList.vue'
 import UserDash from '@/components/userDash.vue'
 import BookRead from '@/views/BookRead.vue'
+import Requests from '@/views/admin/Requests.vue'
+import IssuedList from '@/views/admin/IssuedList.vue'
+import Register from '@/views/Register.vue'
 import { AuthStore } from '../stores/main.js'
 
 const router = createRouter({
@@ -90,6 +93,21 @@ const router = createRouter({
       component: SectionAdd
     },
     {
+      path: '/requests',
+      name: 'requests',
+      component: Requests
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: Register
+    },
+    {
+      path: '/issued_list',
+      name: 'issued_list',
+      component: IssuedList
+    },
+    {
       path: '/error',
       name: 'error',
       component: Error
@@ -98,7 +116,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  if (to.name !== 'login' && to.name !=='home' && !AuthStore().loggedIn) next({ name: 'login' })
+  if (to.name !== 'login' && to.name !=='home' && to.name !=='register' && !AuthStore().loggedIn) next({ name: 'login' })
   else next()
 })
 

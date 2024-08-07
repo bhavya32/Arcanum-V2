@@ -99,7 +99,7 @@ async function updatePolicy(form) {
             <div class="card-body">
                 <h5 class="card-title">Currently Issued</h5>
                 <h1 class="card-text" style="margin-top: 20px;">{{ dashVars.issued }}</h1>
-                <a href="/admin/issued" class="btn btn-primary stretched-link hide-slink"></a>
+                <RouterLink to="issued_list" class="btn btn-primary stretched-link hide-slink"></RouterLink>
             </div>
 
         </div>
@@ -108,7 +108,7 @@ async function updatePolicy(form) {
             <div class="card-body">
                 <h5 class="card-title">Pending Requests</h5>
                 <h1 class="card-text" style="margin-top: 20px;">{{ dashVars.req }}</h1>
-                <a href="{{url_for('pending_requests')}}" class="btn btn-primary stretched-link hide-slink"></a>
+                <RouterLink to="requests" class="btn btn-primary stretched-link hide-slink"></RouterLink>
             </div>
 
         </div>

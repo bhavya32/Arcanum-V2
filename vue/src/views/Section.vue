@@ -39,6 +39,11 @@ async function removeBookFromSection(book_id){
 
 async function deleteSection(){
     console.log("deleting section", section_id)
+    fetchData(`/api/section/${section_id}/delete`).then(data => {
+        if(data["status"] == "success"){
+            router.push('/sections_list')
+        }
+    })
 }
 
 </script>

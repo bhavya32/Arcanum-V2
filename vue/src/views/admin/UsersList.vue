@@ -11,6 +11,10 @@ var users_list = ref([])
 
 async function deleteUser(x){
     console.log("delete user",x)
+    var r = await fetchData(`/api/user/${x}/delete`)
+    if(r["status"] == "success"){
+        fetchUsers(last)
+    }
 }
 
 async function fetchUsers(params){
@@ -102,9 +106,9 @@ fetchUsers(last)
               
               <td>
                 <div>
-                <i class="bi bi-trash" style="font-size: x-large;" @click.stop="deleteUser(r.id)"></i>
-                
-                  <button class="btn btn-dark" @click.stop="flipTier(r.id)">Change Tier</button>
+                <i class="bi bi-trash" style="font-size: x-large;" @click.stop="deleteUser(r.id)" title="Delete User"></i>
+                <i class="bi bi-arrow-down-up" style="font-size: x-large;" @click.stop="flipTier(r.id)" title="Change Tier"></i>
+                  <!-- <button class="btn btn-dark" @click.stop="flipTier(r.id)">Change Tier</button> -->
 
                 </div>
               </td>
@@ -122,5 +126,8 @@ fetchUsers(last)
 <style scoped>
 tr {
     cursor: pointer
+}
+i {
+  margin:5px
 }
 </style>

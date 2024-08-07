@@ -95,6 +95,30 @@ def login():
     return render_template("login.html", msg=msg)
 
 
+@app.route("/api/usename_availability")
+def username_availability():
+    username = request.args["username"]
+    user = getUser(username)
+    available = True
+    if user != None:
+        available = False
+    return jsonify({"available": available}), 200
+
+@app.route("/api/register", methods=["POST"])
+def register_api():
+    r = request.get_json()
+    fname = r["fname"]
+    lname = r["lname"]
+    username = r["username"]
+    password = r["password"]
+    password = hashlib.md5(password.encode('utf-8')).hexdigest()
+    user = getUser(username)
+    if user != None:
+        return jsonify({"msg": "Username already exists"}), 401
+    user = createUser(fname, lname, username, password)
+    access_token = create_access_token(identity=username, additional_claims={"role": user.role})
+    return jsonify(status="success",access_token=access_token, username=user.username, role=user.role, name=user.fname + " " + user.lname, id=user.id)
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -303,6 +327,14 @@ def section_book_remove2(bid):
 def book_read(id):
     return render_template("book_read.html", id=id)
 
+
+@app.route("/api/book/<int:id>/delete")
+@jwt_required()
+@adminFilter
+def book_delete_api(id):
+    deleteBook(id)
+    return jsonify({"status": "success"})
+
 @app.route("/book/<int:id>/delete", methods=["GET"])
 @login_required
 @librarian
@@ -310,6 +342,30 @@ def book_delete(id):
     deleteBook(id)
     return redirect(url_for("books_list"))
 
+
+@app.route("/api/books", methods=["POST"])
+@jwt_required()
+@adminFilter
+def book_create_api():
+    name=request.form["book_name"]
+    desc=request.form["book_desc"]
+    #author=request.form["author_name"]
+    authors = request.form.getlist("author_name")
+    book = createBook(name,desc)
+    try:
+        pdf = request.files["book_pdf"]
+        pdf.save(os.path.join("./static/pdfs", secure_filename(str(book.id) + ".pdf")))
+    except:
+        pass
+    try:
+        img=request.files["book_img"]
+        if img.filename != "":
+            img.save(os.path.join("./static/books", secure_filename(str(book.id))))
+    except:
+        pass
+    for i in authors:
+        addAuthorship(book.id, i)
+    return jsonify({"status": "success", "id": book.id})
 
 @app.route("/books", methods=["POST"])
 @login_required
@@ -352,12 +408,34 @@ def section(id):
         books_r += [Book.query.filter_by(id=i.book_id).first()]
     return render_template("section.html", books=books_r, s=s, count=len(books_r))
 
+@app.route("/api/section/<int:id>/delete")
+@jwt_required()
+@adminFilter
+def section_delete_api(id):
+    deleteSection(id)
+    return jsonify({"status": "success"})
+
 @app.route("/section/<int:id>/delete", methods=["GET"])
 @login_required
 @librarian
 def section_delete(id):
     deleteSection(id)
     return redirect(url_for("sections_list"))
+
+@app.route("/api/sections", methods=["POST"])
+@jwt_required()
+@adminFilter
+def section_create_api():
+    name=request.form["section_name"]
+    desc=request.form["section_desc"]
+    s = createSection(name,desc)
+    try:
+        file=request.files["section_img"]
+        if file.filename != "":
+            file.save(os.path.join("./static/sections", secure_filename(str(s.id))))
+    except:
+        pass
+    return jsonify({"status": "success", "id": s.id})
 
 @app.route("/sections", methods=["POST"])
 @login_required
@@ -528,6 +606,25 @@ def request_reject(uid, bid):
     return redirect(url_for("pending_requests"))
 
 
+@app.route("/api/requests")
+@jwt_required()
+@adminFilter
+def pending_requests_api():
+    req = getPendingRequests()
+    l = []
+    for i in req:
+        x = {}
+        x["created_at"] = i.created_at
+        book = getBookByID(i.book)
+        x["book_name"] = book.title
+        x["book_id"] = book.id
+        user = getUserByID(i.user)
+        x["username"] = user.username
+        x["user_id"] = user.id
+        l.append(x)
+    
+    return jsonify(l)
+
 @app.route("/admin/requests")
 @login_required
 @librarian
@@ -538,6 +635,12 @@ def pending_requests():
         l.append([i, getBookByID(i.book), getUserByID(i.user)])
     
     return render_template("admin/requests.html", req=l)
+
+@app.route("/api/issued")
+@jwt_required()
+@adminFilter
+def issued_books_api():
+    return jsonify([{"username":i[1].username, "user_id":i[1].id, "book_name": i[2].title, "book_id":i[2].id, "start":i[0].start, "end":i[3]} for i in getAllIssued()])
 
 @app.route("/admin/issued")
 @login_required
@@ -643,6 +746,13 @@ def user_details(uid):
         books[i].end = issued + datetime.timedelta(days=maxBorrowTime())
     return render_template("admin/user.html", books=books, past=past, req=req, user = user)
 
+@app.route("/api/user/<int:uid>/delete")
+@jwt_required()
+@adminFilter
+def delete_user_api(uid):
+    deleteUser(uid)
+    return jsonify({"status": "success"})
+
 @app.route("/admin/user/<int:uid>/delete")
 @login_required
 @librarian
@@ -725,6 +835,21 @@ def section_edit_view(id):
     section=getSectionInfo(id)
     return render_template("admin/section_edit.html", s=section)
 
+
+@app.route("/api/section/<int:id>/edit", methods=["POST"])
+@jwt_required()
+@adminFilter
+def section_edit_api(id):
+    name=request.form["section_name"]
+    desc=request.form["section_desc"]
+    s = updateSection(id, name,desc)
+    try:
+        file=request.files["section_img"]
+        if file.filename != "":
+            file.save(os.path.join("./static/sections", secure_filename(str(s.id))))
+    except:
+        pass
+    return jsonify({"status": "success"})
 
 @app.route("/section/<int:id>/edit", methods=["POST"])
 @login_required

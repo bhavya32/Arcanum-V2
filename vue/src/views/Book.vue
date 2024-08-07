@@ -47,21 +47,7 @@ fetchData('/api/sections').then(data => {
   sections.value = data
 })
 
-async function removeBookFromSection(section_id) {
-  fetchData(`/api/book/${book_id}/section/${section_id}/remove`).then(data => {
-    if (data["status"] == "success") {
-      init()
-    }
-  })
-}
-async function addBookToSection(section_id) {
 
-  fetchData(`/api/book/${book_id}/section/${section_id}/add`).then(data => {
-    if (data["status"] == "success") {
-      init()
-    }
-  })
-}
 async function request() {
   var result = await fetchData('/api/book/' + book_id.toString() + '/request')
   if (result["status"] == "success") {
@@ -71,6 +57,11 @@ async function request() {
 
 async function deleteBook() {
   console.log("delete book", book_id)
+  fetchData('/api/book/' + book_id.toString() + '/delete').then(data => {
+    if (data["status"] == "success") {
+      router.push('/books_list')
+    }
+  })
 }
 
 </script>
@@ -132,39 +123,16 @@ async function deleteBook() {
         <div>
           <p style="color: rgba(0,0,0,.55); margin-bottom: 0;">Authors: <template
               v-for="(auth, index) in book.authors"><template v-if="index != 0">,</template>
-              <RouterLink :to="{ name: 'books_list', query: { author: auth.name } }" class="hidel">{{ auth.name }}
-              </RouterLink>
+              <RouterLink :to="{ name: 'books_list', query: { author: auth.name } }" class="hidel">{{auth.name}}</RouterLink>
             </template>
           </p>
           <p style="color: rgba(0,0,0,.55); margin-bottom: 0;">Avg. Rating: {{ book.rating }}/5</p>
           <p style="color: rgba(0,0,0,.55); margin-bottom: 0;">Total Reads: {{ book.reads }}</p>
-          <div class="d-flex flex-row ">
-            <p style="margin: 0; margin-right: 5px; padding: 4px;" class="text-muted">Sections:</p>
-
-            <div v-for="section in book.sections" class="dropdown" style="margin-right: 5px;">
-              <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
-                aria-expanded="false">
-                {{ section.name }}
-              </button>
-              <ul class="dropdown-menu ">
-                <li>
-                  <RouterLink class="dropdown-item" :to="`/section/${section.id}`">View</RouterLink>
-                </li>
-                <li v-if="s.userInfo.role != 'student'">
-                  <button class="dropdown-item" @click="removeBookFromSection(section.id)">Remove</button></li>
-
-              </ul>
-            </div>
-            <div v-if="!isStudent" class="d-flex flex-row">
-              <select class="form-select" id="secsel" name="sid"
-                @change='addBookToSection($event.target.value); $event.target.value = -1;'>
-                <option value='-1' selected disabled>Add Section</option>
-                <option v-for="sec in sections" :value="sec.id">{{ sec.name }}</option>
-
-              </select>
-            </div>
-
-          </div>
+          <p style="color: rgba(0,0,0,.55); margin-bottom: 0;">Sections: <template
+              v-for="(section, index) in book.sections"><template v-if="index != 0">,</template>
+              <RouterLink :to="`/section/${section.id}`" class="hidel">{{section.name}}</RouterLink>
+            </template>
+          </p>
           <div class="d-flex flex-row mb-2 text-muted">
 
             <p style="margin: 0; margin-right: 5px; padding: 4px;" class="text-muted">Your Rating:</p>
@@ -211,12 +179,14 @@ async function deleteBook() {
 <style scoped>
 #section-info {
   justify-content: center;
-  flex-wrap: wrap
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .desc {
   max-width: 570px;
   padding: 10px 0px;
+  margin-right: 20px;
 }
 
 .overlay {
@@ -254,7 +224,11 @@ async function deleteBook() {
 }
 
 .buttons .btn{
-  margin-right: 10px
+  margin-right: 10px;
+  padding: 10px 15px;
+    margin-right: 10px;
+    border: none;
+    
 }
 
 ::-webkit-scrollbar {

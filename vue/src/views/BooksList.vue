@@ -4,7 +4,7 @@ import API_URL from '@/constants';
 import { AuthStore } from '../stores/main.js'
 import {useRoute, RouterLink} from 'vue-router'
 import router from '../router/index.js'
-
+import fetchData from '../helper.js'
 var authorq = useRoute().query.author
 var author = authorq?authorq:""
 var s = AuthStore()
@@ -18,9 +18,21 @@ async function fetchSections(){
 
 async function deleteBook(x){
     console.log(x)
+    fetchData(`/api/book/${x}/delete`).then(data => {
+        if(data["status"] == "success"){
+            fetchDataDirect(last)
+        }
+      })
 }
 
-async function fetchData(params){
+var last = {
+    sort: "id",
+    book: "",
+    author: author,
+    section:""
+}
+
+async function fetchDataDirect(params){
     const response = await fetch(API_URL + '/api/search?'  + new URLSearchParams({
         ...params
     }))
@@ -29,7 +41,7 @@ async function fetchData(params){
 }
 
 function search(form){
-    fetchData({
+  fetchDataDirect({
         sort: form.target.elements.sort.value,
         book: form.target.elements.book.value,
         author: form.target.elements.author.value,
@@ -37,12 +49,7 @@ function search(form){
     })
 }
 fetchSections()
-fetchData({
-    sort: "id",
-    book: "",
-    author: author,
-    section:""
-})
+fetchDataDirect(last)
 </script>
 
 <template>

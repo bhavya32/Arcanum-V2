@@ -4,7 +4,7 @@ import API_URL from '@/constants';
 import { AuthStore } from '../stores/main.js'
 import {useRoute, RouterLink} from 'vue-router'
 import router from '../router/index.js'
-
+import fetchData from '../helper.js'
 var s = AuthStore()
 var sections = ref([])
 
@@ -16,6 +16,11 @@ async function fetchSections(){
 
 async function deleteSection(id) {
     console.log("delete", id)
+    fetchData(`/api/section/${id}/delete`).then(data => {
+        if(data["status"] == "success"){
+            fetchSections()
+        }
+    })
 }
 
 fetchSections()

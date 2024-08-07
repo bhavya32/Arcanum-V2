@@ -125,7 +125,7 @@ function addBookToSection(section_id, section_name) {
         </div>
         <div class="text-muted mb-4">
           <div class="d-flex flex-row" style="align-items: center">
-            <p style="margin-right: 10px; text-align: center;">Authors:
+            <p style="margin-right: 10px; text-align: center;">Sections:
               
             </p>
             <div class="d-flex flex-wrap authors">
