@@ -36,7 +36,7 @@ fetchSections()
           <h1>Sections</h1>
           
           <div v-if="s.userInfo.role=='librarian'" class="d-flex align-items-center">
-            <RouterLink class="btn btn-dark" to="create_section">Create New</RouterLink>
+            <RouterLink class="btn btn-dark" to="create_section"><i class="bi bi-folder-plus"></i> Create</RouterLink>
           </div>
           
         </div>

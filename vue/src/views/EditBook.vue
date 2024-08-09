@@ -14,6 +14,7 @@ var book = ref({
   "rating": 100,
   "reads": 1,
   "title": "",
+  "price": 0,
   "sections": []
 })
 
@@ -43,6 +44,7 @@ function editBook(form){
     var formData = new FormData()
     formData.append('book_name', form.target.book_name.value)
     formData.append('book_desc', form.target.book_desc.value)
+    formData.append('price', form.target.price.value)
     for (var i = 0; i < authors.value.length; i++) {
         formData.append('author_name', authors.value[i].name)
     }
@@ -88,6 +90,15 @@ function addBookToSection(section_id, section_name) {
           <label class="text-muted mb-2" for="username-input">Book Name</label>
           <input  maxlength="60" :value="book.title" class="form-control" type="text" name="book_name" id="secname-input" required >
         </div>
+        <label class="text-muted mb-2" for="price-input">Book Price</label>
+        <div class="input-group mb-3">
+          
+          <div class="input-group-prepend">
+            <span class="input-group-text">₹</span>
+          </div>
+
+          <input :value="book.price" class="form-control" type="number" name="price" id="price-input" required >
+        </div>
 
         <div class="mb-3" id="author_input">
           <div>
@@ -113,7 +124,7 @@ function addBookToSection(section_id, section_name) {
             <!-- <button
               onclick="document.getElementById('author_input').insertAdjacentHTML('beforeend', `<input maxlength='60' list='authors' class='form-control' name='author_name'>`); return false;">Add
               Author</button> -->
-              <button style="margin-left: 10px" @click.prevent="addAuthor()">Add Author</button>
+              <button class="btn btn-dark" style="margin-left: 10px; margin-bottom: 10px" @click.prevent="addAuthor()">Add Author</button>
           </div>
           <input maxlength="60" list="authors" class="form-control" name="author_name" onmousedown="value = '';" v-model="authorInput">
           <datalist id="authors"></datalist>

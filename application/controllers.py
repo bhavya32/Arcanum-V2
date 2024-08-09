@@ -1,5 +1,6 @@
 import datetime
 import os
+import time
 from flask import jsonify, request, redirect, send_file, url_for
 from flask import render_template
 from flask import current_app as app
@@ -7,13 +8,14 @@ from werkzeug.utils import secure_filename
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager, current_user as curr_user
 from .database import login_manager
-from .dbFunctions import AutoApprove, addAuthorship, addSectionContent, approveRequest, checkAA, checkIssued, createBook, createRequest, createSection, delSectionContent, deleteAuthors, deleteBook, deleteSection, fetchAllRatings, fetchRating, flipTier, getAllAuthors, getAllBooks, getAllBooksFiltered, getAllIssued, getAllSections, getAllUsers, getAllUsersFiltered, getBookByID, getChartData, getChartData_api, getIssued, getLatestEbooks, getPastIssued, getPendingRequests, getPopularEbooks, getRequestStatus, getRequested, getSectionContent, getSectionInfo, getUser, createUser, deleteUser, getUserByID, maxBorrowTime, maxIssueBooks, rejectRequest, returnBook, updateBook, updateInfo, updatePolicy, updateRating, updateSection
+from .dbFunctions import AutoApprove, addAuthorship, addSectionContent, approveRequest, checkAA, checkIssued, checkPurchase, createBook, createRequest, createSection, delSectionContent, deleteAuthors, deleteBook, deleteSection, fetchAllRatings, fetchRating, flipTier, getAllAuthors, getAllBooks, getAllBooksFiltered, getAllIssued, getAllSections, getAllUsers, getAllUsersFiltered, getBookByID, getChartData, getChartData_api, getIssued, getLatestEbooks, getPastIssued, getPendingRequests, getPopularEbooks, getRequestStatus, getRequested, getSectionContent, getSectionInfo, getUser, createUser, deleteUser, getUserByID, maxBorrowTime, maxIssueBooks, rejectRequest, returnBook, setRazID, updateBook, updateInfo, updatePolicy, updateRating, updateSection, createPurchase, completePurchase
 from .models import Book
 import hashlib
 from .util import librarian, admin as adminFilter
 from application import tasks
-
+from .cache_setup import cache
 from flask_cors import CORS
+from .razor_config import client as razorpay_client
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 app.config["JWT_SECRET_KEY"] = ".......4" 
@@ -39,6 +41,43 @@ def protected2():
     return jsonify(logged_in_as=curr_user.fname), 200
 
 
+
+##### razorpay
+
+@app.route("/api/create_purchase_request", methods=["POST"])
+@jwt_required()
+def create_purchase_request():
+    r = request.get_json()
+    book_id = r["book_id"]
+    user_id = curr_user.id
+    amount = getBookByID(book_id).price
+    purchase = createPurchase(user_id, book_id, amount)
+    request_data = {
+        "amount": amount * 100,
+        "currency": "INR",
+        "receipt": str(purchase),
+    }
+    payment = razorpay_client.order.create(data = request_data)
+    setRazID(purchase, payment["id"])
+    return jsonify(order_id=payment["id"])
+
+@app.route("/api/verify_purchase", methods=["POST"])
+@jwt_required()
+def verify_purchase():
+    r = request.get_json()
+    result = razorpay_client.utility.verify_payment_signature(r)
+    if result:
+        completePurchase(r["razorpay_order_id"])
+        return jsonify({"status": "success"})
+    return jsonify({"status": "error"})
+#### razorpay end
+
+@app.route("/api/cache_test")
+@cache.cached(timeout=20)
+def cache_test():
+    #wait for 10 seconds
+    time.sleep(5)
+    return jsonify({"status": "success"})
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -132,6 +171,7 @@ def login():
 
 
 @app.route("/api/usename_availability")
+@cache.cached(timeout=60)
 def username_availability():
     username = request.args["username"]
     user = getUser(username)
@@ -212,6 +252,7 @@ def error():
 
 
 @app.route("/api/home_books")
+@cache.cached(timeout=300)
 def home_books():
     #sections_c = getAllSections()
     sections= [{"id": i.id, "name": i.name} for i in getAllSections()]
@@ -279,12 +320,13 @@ def book_api(id):
     curr = fetchRating(curr_user.id, id)
     if curr:
         score = curr.score
+    owned = checkPurchase(curr_user.id, id)
     allratings = fetchAllRatings(id)
     allratings = [{"user": i.user, "score": i.score} for i in allratings]
     sections = [{"id": i.id, "name": i.name} for i in book.sections]
     tier = curr_user.tier
     bauth = [b.to_dict() for b in book.bauth]
-    return jsonify({"book": {"id": book.id, "title": book.title, "desc": book.desc, "authors": bauth, "rating": book.rating, "reads": book.reads, "sections":sections}, "issued": issued, "score": score, "allratings": allratings, "requested": requested, "tier": tier})    
+    return jsonify({"book": {"id": book.id, "title": book.title, "desc": book.desc, "authors": bauth, "rating": book.rating, "reads": book.reads, "sections":sections,"price": book.price}, "issued": issued, "score": score, "allratings": allratings, "requested": requested, "tier": tier, "owned": owned})    
 
 @app.route("/book/<int:id>", methods=["GET"])
 @login_required
@@ -402,9 +444,10 @@ def book_delete(id):
 def book_create_api():
     name=request.form["book_name"]
     desc=request.form["book_desc"]
+    price=request.form["price"]
     #author=request.form["author_name"]
     authors = request.form.getlist("author_name")
-    book = createBook(name,desc)
+    book = createBook(name,desc, price)
     try:
         pdf = request.files["book_pdf"]
         pdf.save(os.path.join("./static/pdfs", secure_filename(str(book.id) + ".pdf")))
@@ -574,6 +617,7 @@ def sections_list():
     return render_template("sections.html", sc = sections)
 
 @app.route("/api/search")
+@cache.cached(timeout=10)
 def search_books():
     fbook = "%%"
     fauth = ""
@@ -840,9 +884,10 @@ def book_edit_view(id):
 def book_edit_api(id):
     name=request.form["book_name"]
     desc=request.form["book_desc"]
+    price=request.form["price"]
     #author=request.form["author_name"]
     authors = request.form.getlist("author_name")
-    book = updateBook(id, name,desc)
+    book = updateBook(id, name,desc, price)
     try:
         pdf = request.files["book_pdf"]
         if pdf.filename != "":

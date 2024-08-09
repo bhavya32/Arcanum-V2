@@ -44,6 +44,7 @@ class Book(db.Model, SerializerMixin):
     #section = db.Column(db.ForeignKey('sections.id'), nullable=False)
     desc = db.Column(db.Text)
     date_created = db.Column(db.DateTime, nullable=False, server_default=db.text("CURRENT_TIMESTAMP"))
+    price = db.Column(db.Integer, nullable=False, server_default=db.text("200"))
     #section1 = db.relationship('Section')
 
 
@@ -111,3 +112,16 @@ class Policy(db.Model, SerializerMixin):
     __tablename__ = 'policy'
     name = db.Column(db.Text, nullable=False, primary_key=True)
     value = db.Column(db.Integer, nullable=False)
+
+class Purchase(db.Model, SerializerMixin):
+    __tablename__ = 'purchase'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey('users.id'), nullable=False)
+    book_id = db.Column(db.ForeignKey('books.id'), nullable=False)
+    status = db.Column(db.Integer, nullable=False, server_default=db.text("0"))
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text("CURRENT_TIMESTAMP"))
+    value = db.Column(db.Integer, nullable=False)
+    raz_id = db.Column(db.String(255))
+    book1 = db.relationship('Book')
+    user1 = db.relationship('User')

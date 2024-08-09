@@ -1,7 +1,7 @@
 import io
 import datetime
 import re
-from .models import Author, Authorship, Book, History, Issued, Rating, Request, Section_content, User, Section, db, Policy
+from .models import Author, Authorship, Book, History, Issued, Rating, Request, Section_content, User, Section, db, Policy, Purchase
 from sqlalchemy import func, desc,asc
 
 from matplotlib import pyplot as plt
@@ -10,6 +10,33 @@ from textwrap import wrap
 
 import matplotlib
 matplotlib.use('agg')
+
+def checkPurchase(uid, bid):
+    print(uid, bid)
+    x = Purchase.query.filter_by(user_id=uid, book_id=bid, status=1).first()
+    if x:
+        return True
+    return False
+
+def createPurchase(uid, bid, value):
+    p = Purchase()
+    p.user_id = uid
+    p.book_id = bid
+    p.status = 0
+    p.value = value
+    db.session.add(p)
+    db.session.commit()
+    return p.id
+
+def setRazID(id, raz_id):
+    p = Purchase.query.filter_by(id=id).first()
+    p.raz_id = raz_id
+    db.session.commit()
+
+def completePurchase(id):
+    p = Purchase.query.filter_by(raz_id=id).first()
+    p.status = 1
+    db.session.commit()
 
 def maxIssueBooks():
     return Policy.query.filter_by(name="MaxBorrowBooks").first().value
@@ -75,7 +102,8 @@ def deleteUser(id):
         updateStaticRating(bid)
         updateTotalReads(bid)
         
-    
+    for p in Purchase.query.filter_by(user_id=id).all():
+        db.session.delete(p)
     db.session.delete(u)
     db.session.commit()
 
@@ -280,18 +308,20 @@ def addAuthorship(bid, aname):
     except:
         pass
 
-def createBook(name, desc):
+def createBook(name, desc, price):
     b = Book()
     b.title = name
     b.desc = desc
+    b.price = price
     db.session.add(b)
     db.session.commit()
     return b
 
-def updateBook(id,name, desc):
+def updateBook(id,name, desc, price):
     b = getBookByID(id)
     b.title = name
     b.desc = desc
+    b.price = price
     db.session.commit()
     return b
 
@@ -317,7 +347,9 @@ def deleteBook(id):
     
     for r in Rating.query.filter_by(book=id).all():
         db.session.delete(r)
-    
+
+    for p in Purchase.query.filter_by(book_id=id).all():
+        db.session.delete(p)
     db.session.delete(b)
     db.session.commit()
 

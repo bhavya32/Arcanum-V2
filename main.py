@@ -2,11 +2,12 @@ from flask import Flask
 from application import workers
 from application.config import Config
 from application.database import db, login_manager
-
+from application.cache_setup import cache
 app = Flask(__name__, template_folder="templates")
 app.config.from_object(Config)
 app.secret_key = 'your_secret_key_here'
 db.init_app(app)
+cache.init_app(app)
 login_manager.init_app(app)
 app.app_context().push()
 celery = workers.celery

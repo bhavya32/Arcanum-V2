@@ -7,3 +7,5 @@ Flask-JWT-Extended
 SQLAlchemy-serializer
 redis
 celery[redis]
+Flask-Caching
+razorpay

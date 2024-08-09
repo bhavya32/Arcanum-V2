@@ -281,4 +281,7 @@ async function updatePolicy(form) {
   position: relative;
   overflow-y: auto
 }
+.card {
+    box-shadow: 0px 6px 40px -32px rgba(0,0,0,0.75);
+}
 </style>

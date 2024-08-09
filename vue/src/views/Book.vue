@@ -17,7 +17,8 @@ var book = ref({
   "rating": 100,
   "reads": 1,
   "title": "",
-  "sections": []
+  "sections": [],
+  "price": 200
 })
 var tier = ref(0)
 var issued = ref(false)
@@ -26,6 +27,7 @@ var score = ref(0)
 var allratings = ref([])
 var sections = ref([])
 var isStudent = computed(() => s.userInfo.role == "student")
+var owned = ref(false)
 
 var croppedDesc = computed(() => book.value.desc.length > 300 ? book.value.desc.slice(0, 300) + "..." : book.value.desc)
 var isCropped = computed(() => book.value.desc.length > 300)
@@ -38,6 +40,7 @@ function init() {
     score.value = data["score"]
     allratings.value = data["allratings"]
     tier.value = data["tier"]
+    owned.value = data["owned"]
   })
 }
 init()
@@ -64,6 +67,58 @@ async function deleteBook() {
   })
 }
 
+var purchaseOngoing = ref(false)
+async function purchase() {
+  purchaseOngoing.value = true
+  var response = await fetch(API_URL + '/api/create_purchase_request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${s.authToken}`,
+        },
+        body: JSON.stringify({
+            book_id: book_id
+        }),
+    })
+  var data = await response.json()
+  var options = {
+    "key": "rzp_test_jeV260FCDVkU47", 
+    "amount": book.price * 100,
+    "currency": "INR",
+    "name": "Arcanum",
+    "description": "Purchase Book",
+    "order_id": data["order_id"],
+    "handler": async function (response){
+        console.log(response)
+        const paymentData = {
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature
+            };
+        var res = await fetch(API_URL + '/api/verify_purchase', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${s.authToken}`,
+            },
+            body: JSON.stringify(paymentData),
+        })
+        var data = await res.json()
+        if(data["status"] == "success"){
+            init()
+        }
+    },
+  }
+  var rzp1 = new Razorpay(options);
+  rzp1.open()
+  rzp1.on('payment.failed', function (response){
+        console.log("failed", response.error.code);
+});
+  rzp1.on('payment.success', function (response){
+    console.log("success", response)
+  })
+  purchaseOngoing.value = false
+}
 </script>
 <template>
   <div id="body">
@@ -82,12 +137,15 @@ async function deleteBook() {
           </p>
           <div class="buttons">
             <template v-if="isStudent" class="mb-2">
-
+              <template v-if="!owned">
               <template v-if="!issued">
                 <button v-if="requested" disabled class="btn btn-dark">Requested on {{ (new
                   Date(requested.created_at)).toLocaleDateString()}}</button>
-                <button v-else @click="request()" class="btn btn-dark">Request</button>
+                <button v-else @click="request()" class="btn btn-dark"><i class="bi bi-file-earmark-plus"></i> Request</button>
+                <button v-if="!owned" :disabled="purchaseOngoing" @click="purchase()" class="btn btn-dark"><i class="bi bi-cart3"></i> Purchase</button>
               </template>
+            </template>
+             
 
               <template v-else>
 
@@ -96,7 +154,9 @@ async function deleteBook() {
                   class="btn btn-dark">Download</a>
 
               </template>
-
+              <template v-else>
+                <button class="btn btn-dark" @click='download()'><i class="bi bi-download"></i> Download</button>
+              </template>
             </template>
 
             <template v-else class="d-flex flex-row">
@@ -128,6 +188,7 @@ async function deleteBook() {
           </p>
           <p style="color: rgba(0,0,0,.55); margin-bottom: 0;">Avg. Rating: {{ book.rating }}/5</p>
           <p style="color: rgba(0,0,0,.55); margin-bottom: 0;">Total Reads: {{ book.reads }}</p>
+          <p style="color: rgba(0,0,0,.55); margin-bottom: 0;">Price: ₹{{ book.price }}</p>
           <p style="color: rgba(0,0,0,.55); margin-bottom: 0;">Sections: <template
               v-for="(section, index) in book.sections"><template v-if="index != 0">,</template>
               <RouterLink :to="`/section/${section.id}`" class="hidel">{{section.name}}</RouterLink>

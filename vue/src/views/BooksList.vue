@@ -98,7 +98,7 @@ fetchDataDirect(last)
         <div class="d-flex flex-row justify-content-between">
           <h1>Books</h1>
           <div class="d-flex align-items-center">
-            <RouterLink v-if="s.userInfo.role == 'librarian'" class="btn btn-dark" to="book_add">Upload New</RouterLink>
+            <RouterLink v-if="s.userInfo.role == 'librarian'" class="btn btn-dark" to="book_add"><i class="bi bi-upload"></i> Upload</RouterLink>
             
           </div>
         </div>
