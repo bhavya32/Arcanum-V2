@@ -21,17 +21,6 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(days=15)
 jwt = JWTManager(app)
 recent_export_tasks=[]
 
-@app.route("/api/just_simple_task")
-def just_simple_task():
-    tsk = tasks.create_history_csv.delay()
-    return jsonify({"status": "success", "task_id": tsk.id})
-
-@app.route("/api/just_simple_task_status")
-def just_simple_task_status():
-    task_id = request.args["task_id"]
-    task = tasks.create_history_csv.AsyncResult(task_id)
-    return jsonify({"status": task.status, "result": task.result})
-
 @jwt.user_lookup_loader
 def user_lookup_callback(_jwt_header, jwt_data):
     identity = jwt_data["sub"]
@@ -78,6 +67,20 @@ def export_status():
         task = tasks.create_history_csv.AsyncResult(i["task_id"])
         status.append({"task_id": i["task_id"], "status": task.status, "result": task.result, "time": i["time"]})
     return jsonify(status)
+
+@app.route("/api/send_reminders")
+@jwt_required()
+@adminFilter
+def send_reminders():
+    tsk = tasks.return_reminder.apply_async()
+    return jsonify({"status": "success", "task_id": tsk.id})
+
+@app.route("/api/month_report")
+@jwt_required()
+@adminFilter
+def month_report():
+    tsk = tasks.monthly_activity.apply_async()
+    return jsonify({"status": "success", "task_id": tsk.id})
 
 @app.route("/api/sections")
 def sections_api():

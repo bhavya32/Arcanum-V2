@@ -461,3 +461,31 @@ def getChartData():
     plt.savefig(buff, format="png")
     buff.seek(0)
     return buff
+
+def getAllHistory():
+    r = []
+    for i in History.query.all():
+        a = [i,getUserByID(i.user),getBookByID(i.book)]
+        r.append(a)
+    return r
+
+def getMonthlyHistory():
+    r = []
+    for i in History.query.filter(History.end > datetime.datetime.now().replace(day=1, hour=0)).all():
+        a = [i,getUserByID(i.user),getBookByID(i.book)]
+        r.append(a)
+    return r
+
+def getMonthlyReads(book_id):
+    r = []
+    for i in History.query.filter(History.end > datetime.datetime.now().replace(day=1, hour=0)).filter_by(book=book_id).all():
+        a = [i,getUserByID(i.user),getBookByID(i.book)]
+        r.append(a)
+    return len(r)
+
+def mostReadBook():
+    r = []
+    for i in Book.query.all():
+        a = [i, getMonthlyReads(i.id)]
+        r.append(a)
+    return max(r, key=lambda x: x[1])[0]

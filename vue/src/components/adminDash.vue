@@ -21,7 +21,13 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, Colors } from 'chart.js'
 import { Doughnut } from 'vue-chartjs'
 var exportDisabled = ref(false)
 var showOverlay = ref(false)
+var reminderDisabled = ref(false)
 var exportsHistory = ref([])
+var monthlyDisabled = ref(false)
+
+const month = new Date().toLocaleString('en-us',{month:'short'})
+
+
 ChartJS.register(ArcElement, Tooltip,Legend,Colors)
 const chartOptions = {
   responsive: true,
@@ -47,6 +53,16 @@ async function viewExports() {
     var data = await fetchData('/api/export_status')
     exportsHistory.value = data
     showOverlay.value = true
+}
+
+async function requestMonthlyReport() {
+    monthlyDisabled.value = true
+    var data = await fetchData('/api/month_report')
+}
+
+async function sendReminder() {
+    reminderDisabled.value = true
+    var data = await fetchData('/api/send_reminders')
 }
 
 fetchData('/api/adminDashboard').then(data => {
@@ -198,6 +214,8 @@ async function updatePolicy(form) {
     <div class="adminbuttons">
         <button class="btn btn-dark" :disabled="exportDisabled" @click="exportData()">{{exportDisabled? "Export Request Received" :"Export Activity History"}}</button>
         <button class="btn btn-dark" @click="viewExports()">View Recent Exports</button>
+        <button class="btn btn-dark" :disabled="reminderDisabled" @click="sendReminder()">{{reminderDisabled? "Reminders queued" :"Send Reminders"}}</button>
+        <button class="btn btn-dark" :disabled="monthlyDisabled" @click="requestMonthlyReport()">{{monthlyDisabled? "Mailing Shortly": `Monthly Report - ${month}`}}</button>
     </div>
     </div>
     <div class="overlay" v-show="showOverlay">

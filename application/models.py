@@ -43,6 +43,7 @@ class Book(db.Model, SerializerMixin):
     reads = db.Column(db.Integer, default=0)
     #section = db.Column(db.ForeignKey('sections.id'), nullable=False)
     desc = db.Column(db.Text)
+    date_created = db.Column(db.DateTime, nullable=False, server_default=db.text("CURRENT_TIMESTAMP"))
     #section1 = db.relationship('Section')
 
 
