@@ -152,7 +152,7 @@ input[type="radio"]:checked+label {
 }
 
 .borderhover {
-    border: 3px solid #f0f0f0;
+    border: 3px solid #ffffff;
     border-radius: 10px;
     &:hover {
         border: 3px solid black;

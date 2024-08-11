@@ -1,23 +1,18 @@
 <script setup>
 import API_URL from '../constants.js'
-</script>
-<script>
-export default {
-  data() {
-    return { popular: [], latest: [], gs: [], loggedin: true }
-  },
-  created() {
-    fetch(API_URL + '/api/home_books')
+import {ref} from 'vue'
+import { AuthStore } from '../stores/main.js'
+var s = AuthStore()
+var data = ref({ popular: [], latest: [], gs: []})
+fetch(API_URL + '/api/home_books')
       .then(response => response.json())
-      .then(data => {
-        this.$data.popular = data["popular"];
-        this.$data.latest = data["latest"];
-        this.$data.gs = data["gs"];
+      .then(res => {
+        data.value.popular = res["popular"];
+        data.value.latest = res["latest"];
+        data.value.gs = res["gs"];
       })
-  }
-}
+</script>
 
-  </script>
 <template>
   
   <div class="container d-flex">
@@ -40,7 +35,7 @@ export default {
       </div>
       <div id="categoryCarousel" class="carousel carousel-dark slide" data-bs-ride="carousel">
         <div class="carousel-inner">
-          <div v-for="(sections, index) in gs" class="carousel-item" v-bind:class = "(index==0)?'active':''">
+          <div v-for="(sections, index) in data.gs" class="carousel-item" v-bind:class = "(index==0)?'active':''">
             
             <div  class="d-flex flex-row justify-content-evenly">
               
@@ -76,7 +71,7 @@ export default {
       <h2>Most Popular E-Books</h2>
       <div  class="d-flex flex-row justify-content-evenly">
         
-        <div v-for="s in popular" style="max-width: 208px; flex-wrap: wrap; align-content: center;"
+        <div v-for="s in data.popular" style="max-width: 208px; flex-wrap: wrap; align-content: center;"
           class="borderhover position-relative d-flex flex-column">
           <img style="margin: 2px;" class="thumbnail" :onerror="`this.src='${API_URL}/static/200x250.svg';`" alt="Image not Set"
             :src="`${API_URL}/static/books/${s.id}`">
@@ -94,7 +89,7 @@ export default {
     <div id="latest" class="container">
       <h2>Latest Additions</h2>
       <div class="d-flex flex-row justify-content-evenly">
-        <div v-for="s in latest" style="max-width: 208px; flex-wrap: wrap; align-content: center;"
+        <div v-for="s in data.latest" style="max-width: 208px; flex-wrap: wrap; align-content: center;"
           class="borderhover position-relative d-flex flex-column">
           <img style="margin: 2px;" class="thumbnail" :onerror="`this.src='${API_URL}/static/200x250.svg';`" alt="Image not Set"
           :src="`${API_URL}/static/books/${s.id}`">
@@ -106,7 +101,7 @@ export default {
       </div>
     </div>
   </section>
-  <section v-if="!loggedin" class="cta my-5">
+  <section v-if="!s.loggedIn" class="cta my-5">
     <div class="container text-center">
       <h2>Start Your Reading Journey Today</h2>
       <a href="/register" class="btn btn-lg btn-dark">Create a Free Account</a>

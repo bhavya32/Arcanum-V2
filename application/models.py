@@ -125,3 +125,14 @@ class Purchase(db.Model, SerializerMixin):
     raz_id = db.Column(db.String(255))
     book1 = db.relationship('Book')
     user1 = db.relationship('User')
+
+class Comment(db.Model, SerializerMixin):
+    __tablename__ = 'comments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    book_id = db.Column(db.ForeignKey('books.id'), nullable=False)
+    user_id = db.Column(db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text("CURRENT_TIMESTAMP"))
+    user1 = db.relationship('User')
+    book1 = db.relationship('Book')

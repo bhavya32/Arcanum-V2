@@ -1,15 +1,61 @@
 import io
 import datetime
 import re
-from .models import Author, Authorship, Book, History, Issued, Rating, Request, Section_content, User, Section, db, Policy, Purchase
+from .models import Author, Authorship, Book, History, Issued, Rating, Request, Section_content, User, Section, db, Policy, Purchase, Comment
 from sqlalchemy import func, desc,asc
 
 from matplotlib import pyplot as plt
 import numpy as np
 from textwrap import wrap
-
+import math
 import matplotlib
 matplotlib.use('agg')
+
+def deleteComment(id):
+    c = Comment.query.filter_by(id=id).first()
+    db.session.delete(c)
+    db.session.commit()
+
+def createComment(uid, bid, comment):
+    c = Comment()
+    c.user_id = uid
+    c.book_id = bid
+    c.content = comment
+    db.session.add(c)
+    db.session.commit()
+    return c
+
+def getComment(uid, bid):
+    return Comment.query.filter_by(user_id=uid, book_id=bid).first()
+    
+def getComments(bid):
+    comments = []
+    for i in Comment.query.filter_by(book_id=bid).all():
+        comment = {}
+        comment['content'] = i.content
+        comment['user'] = User.query.filter_by(id=i.user_id).first().username
+        comment['date'] = i.created_at
+        comment['id'] = i.id
+        rating = Rating.query.filter_by(user=i.user_id, book=bid).first()
+        if rating:
+            comment['rating'] = rating.score
+        comments.append(comment)
+    return comments
+
+def purchaseHistory(start, end):
+    #sqlq = r"SELECT strftime('%Y-%m-%d', created_at) AS daily,SUM(value) AS total_value FROM purchase WHERE status = 1 GROUP BY daily ORDER BY daily;"
+    sqlq = f"WITH calendar AS (SELECT DATE('{start}') AS date UNION ALL SELECT DATE(date, '+1 day') FROM calendar WHERE date < DATE('{end}')) SELECT c.date AS day, COALESCE(SUM(p.value), 0) AS total_value FROM calendar c LEFT JOIN (select * from purchase where status = 1) p ON DATE(p.created_at) = c.date GROUP BY c.date ORDER BY c.date;"
+    r = db.session.execute(db.text(sqlq))
+    labels = []
+    data = []
+    for i in r:
+        data.append(i[1])
+        labels.append(i[0])
+    return [labels, data]
+
+
+def getPurchases(uid):
+    return Purchase.query.filter_by(user_id=uid, status=1).all()
 
 def checkPurchase(uid, bid):
     print(uid, bid)
@@ -104,6 +150,9 @@ def deleteUser(id):
         
     for p in Purchase.query.filter_by(user_id=id).all():
         db.session.delete(p)
+
+    for c in Comment.query.filter_by(user_id=id).all():
+        db.session.delete(c)
     db.session.delete(u)
     db.session.commit()
 
@@ -136,7 +185,7 @@ def updateStaticRating(bid):
     book = Book.query.filter_by(id=bid).first()
     if avg is None:
         avg=0
-    book.rating = avg
+    book.rating = round(avg,2)
     db.session.commit()
 
 def updateRating(uid, bid, score):
@@ -350,6 +399,8 @@ def deleteBook(id):
 
     for p in Purchase.query.filter_by(book_id=id).all():
         db.session.delete(p)
+    for c in Comment.query.filter_by(book_id=id).all():
+        db.session.delete(c)
     db.session.delete(b)
     db.session.commit()
 

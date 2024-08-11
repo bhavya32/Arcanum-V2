@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed} from 'vue'
 import {useRoute,  RouterLink} from 'vue-router'
 import fetchData from '../helper.js'
 import { AuthStore } from '../stores/main.js'
@@ -17,8 +17,23 @@ var dashVars = ref({
     auto: false
 })
 
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, Colors } from 'chart.js'
-import { Doughnut } from 'vue-chartjs'
+var salesData = ref({
+    labels: [],
+    datasets: [
+        {
+            data: [],
+        },
+    ],
+})
+
+
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, Colors,CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,} from 'chart.js'
+
+
+import { Doughnut, Line} from 'vue-chartjs'
 var exportDisabled = ref(false)
 var showOverlay = ref(false)
 var reminderDisabled = ref(false)
@@ -28,12 +43,44 @@ var monthlyDisabled = ref(false)
 const month = new Date().toLocaleString('en-us',{month:'short'})
 
 
-ChartJS.register(ArcElement, Tooltip,Legend,Colors)
+ChartJS.register(ArcElement, Tooltip,Legend,Colors,CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,)
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: true,
   
 };
+
+const salesOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    interaction: {
+     intersect: false,
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        border: {
+            display: false,
+        },
+
+      },
+      y: {
+        display: true,
+        title: {
+          display: true,
+          text: 'Sales'
+        },
+        border: {
+            dash: [5, 10],
+        },
+      }
+    }
+}
 
 var chartData = ref({
   labels: [],
@@ -81,9 +128,36 @@ fetchData('/api/admin/chart').then(data => {
         ],
     }
 })
+
+function parseDates(data) {
+    return data.map(x => new Date(x).toLocaleString('en-us',{month:"short", day:"2-digit"}))
+}
+
+fetchData("/api/sales_stats").then(data => {
+    salesData.value = {
+        labels: parseDates(data[0]),
+        datasets: [{
+            data: data[1], 
+            label: "Sales", 
+            borderColor: "#35353d",
+            borderWidth: 3,
+            tension:0.3,
+            pointRadius:0
+        }],
+    }
+})
+var totalSales = computed(() => salesData.value.datasets[0].data.reduce((a, b) => a + b, 0))
+var todayDate = new Date().getDate()
 function getColors(length) {
-    let pallet2 = ["#0074D9", "#FF4136", "#2ECC40", "#FF851B", "#7FDBFF", "#B10DC9", "#FFDC00", "#001f3f", "#39CCCC", "#01FF70", "#85144b", "#F012BE", "#3D9970", "#111111", "#AAAAAA"];
-    let pallet = ["#FF4136", "#2ECC40", "#FF851B", "#7FDBFF", "#B10DC9", "#FFDC00", "#001f3f", "#39CCCC", "#01FF70", "#85144b", "#F012BE", "#3D9970", "#111111", "#AAAAAA"];
+    //let pallet2 = ["#0074D9", "#FF4136", "#2ECC40", "#FF851B", "#7FDBFF", "#B10DC9", "#FFDC00", "#001f3f", "#39CCCC", "#01FF70", "#85144b", "#F012BE", "#3D9970", "#111111", "#AAAAAA"];
+    //let pallet = ["#FF4136", "#2ECC40", "#FF851B", "#7FDBFF", "#B10DC9", "#FFDC00", "#001f3f", "#39CCCC", "#01FF70", "#85144b", "#F012BE", "#3D9970", "#111111", "#AAAAAA"];
+    let pallet = [
+      '#5bc0de',
+      '#337ab7',
+      '#5cb85c',
+      '#6f42c1',
+      '#868e96'
+    ]
     let colors = [];
 
     for (let i = 0; i < length; i++) {
@@ -170,7 +244,7 @@ async function updatePolicy(form) {
         </div>
     </div>
 
-    <div class=" container float-profile">
+    <div class=" container float-profile" style="margin-bottom:20px">
         <div class=" container d-flex flex-row justify-content-evenly ">
           
         
@@ -241,6 +315,27 @@ async function updatePolicy(form) {
                 </tbody>
             </table>
           </div>
+    </div>
+    <div class=" container float-profile">
+        <div class=" container d-flex flex-row justify-content-evenly ">
+          
+        
+        <div style="width: 100%; display:flex; flex-direction: column; align-items: center">
+            <div style="width:100%;display:flex; flex-direction: row; justify-content: space-between">
+            <h3 style="align-content: center">Daily Sales</h3>
+            <div>
+            <h3 style="margin:0px;">₹{{totalSales}}</h3>
+            <p class="text-muted" style="margin:0px;">({{month}} 01 - {{month}} {{ todayDate }})</p>
+            </div>
+            </div>
+            <div style="width: 90%">
+            <Line :data="salesData" :options="salesOptions" />
+        </div>
+        </div>
+            
+        
+    </div>
+    
     </div>
     
     <div style="min-height: 15px"></div>

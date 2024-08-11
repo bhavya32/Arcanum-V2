@@ -58,11 +58,11 @@ fetchUsers(last)
               <input type="text" name="username" class="form-control" placeholder="Username">
             </div>
             <div class="col">
-              <label>Tier</label>
+              <label>Downloads</label>
               <select name="tier" class="form-select">
-                <option selected value="-1">Any</option>
-                <option value="0">FREE</option>
-                <option value="1">PAID</option>
+                <option selected value="-1">-</option>
+                <option value="0">Allowed</option>
+                <option value="1">Not Allowed</option>
               </select>
             </div>
             <div class="col" style="display: flex; align-items: flex-end;">
@@ -85,7 +85,7 @@ fetchUsers(last)
             <th>First Name</th>
             <th>Last Name</th>
             <th>Created At</th>
-            <th>Tier</th>
+            <th>Downloads</th>
             
             <th></th>
 
@@ -101,13 +101,13 @@ fetchUsers(last)
               <td>{{r.fname}}</td>
               <td>{{r.lname}}</td>
               <td>{{(new Date(r.created_at)).toLocaleDateString()}}</td>
-              <td v-if="r.tier == 0"> FREE </td>
-                <td v-else> PAID </td>
+              <td v-if="r.tier == 0"> <i class="bi bi-x-square" title="Not Allowed"></i> </td>
+                <td v-else> <i class="bi bi-check-square" title="Allowed"></i> </td>
               
               <td>
                 <div>
-                <i class="bi bi-trash" style="font-size: x-large;" @click.stop="deleteUser(r.id)" title="Delete User"></i>
-                <i class="bi bi-arrow-down-up" style="font-size: x-large;" @click.stop="flipTier(r.id)" title="Change Tier"></i>
+                <i class="bi bi-trash" @click.stop="deleteUser(r.id)" title="Delete User"></i>
+                <i class="bi bi-arrow-down-up" @click.stop="flipTier(r.id)" title="Change Tier"></i>
                   <!-- <button class="btn btn-dark" @click.stop="flipTier(r.id)">Change Tier</button> -->
 
                 </div>
@@ -128,6 +128,7 @@ tr {
     cursor: pointer
 }
 i {
-  margin:5px
+  margin:5px;
+  font-size: x-large;
 }
 </style>

@@ -39,4 +39,23 @@ export async function postData(path, data) {
     return await response.json()
 }
 
+export async function postJSON(path, data) {
+    var store = AuthStore()
+
+    const response = await fetch(API_URL+path, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${store.authToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+
+    if (!response.ok) {
+        store.logout()
+        router.push({ name: 'error' })
+    }
+    return await response.json()
+}
+
 export default fetchData

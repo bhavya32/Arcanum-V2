@@ -7,6 +7,13 @@ var loggedin = false;
 
 <template>
   <NavBar />
-  
+  <div class="body-margin">
   <RouterView />
+</div>
 </template>
+
+<style scoped>
+.body-margin{
+  margin-top: 70px;
+}
+</style>

@@ -53,7 +53,7 @@ fetchDataDirect(last)
 </script>
 
 <template>
-    <div class=" container mb-4">
+    <div class=" container mb-4" style="padding-top:20px">
       <div class="container body">
 
 
@@ -142,6 +142,10 @@ fetchDataDirect(last)
 </template>
 <style scoped>
 tr {
-    cursor: pointer
+    cursor: pointer;
+    font-size: large;
+}
+td {
+  padding: 10px;
 }
 </style>

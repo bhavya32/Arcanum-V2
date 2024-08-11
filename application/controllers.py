@@ -1,3 +1,4 @@
+import calendar
 import datetime
 import os
 import time
@@ -6,9 +7,9 @@ from flask import render_template
 from flask import current_app as app
 from werkzeug.utils import secure_filename
 from flask_login import current_user, login_required, login_user, logout_user
-from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager, current_user as curr_user
+from flask_jwt_extended import create_access_token, decode_token, get_jwt_identity, jwt_required, JWTManager, current_user as curr_user, verify_jwt_in_request
 from .database import login_manager
-from .dbFunctions import AutoApprove, addAuthorship, addSectionContent, approveRequest, checkAA, checkIssued, checkPurchase, createBook, createRequest, createSection, delSectionContent, deleteAuthors, deleteBook, deleteSection, fetchAllRatings, fetchRating, flipTier, getAllAuthors, getAllBooks, getAllBooksFiltered, getAllIssued, getAllSections, getAllUsers, getAllUsersFiltered, getBookByID, getChartData, getChartData_api, getIssued, getLatestEbooks, getPastIssued, getPendingRequests, getPopularEbooks, getRequestStatus, getRequested, getSectionContent, getSectionInfo, getUser, createUser, deleteUser, getUserByID, maxBorrowTime, maxIssueBooks, rejectRequest, returnBook, setRazID, updateBook, updateInfo, updatePolicy, updateRating, updateSection, createPurchase, completePurchase
+from .dbFunctions import AutoApprove, addAuthorship, addSectionContent, approveRequest, checkAA, checkIssued, checkPurchase, createBook, createComment, createRequest, createSection, delSectionContent, deleteAuthors, deleteBook, deleteComment, deleteSection, fetchAllRatings, fetchRating, flipTier, getAllAuthors, getAllBooks, getAllBooksFiltered, getAllIssued, getAllSections, getAllUsers, getAllUsersFiltered, getBookByID, getChartData, getChartData_api, getComment, getComments, getIssued, getLatestEbooks, getPastIssued, getPendingRequests, getPopularEbooks, getPurchases, getRequestStatus, getRequested, getSectionContent, getSectionInfo, getUser, createUser, deleteUser, getUserByID, maxBorrowTime, maxIssueBooks, purchaseHistory, rejectRequest, returnBook, setRazID, updateBook, updateInfo, updatePolicy, updateRating, updateSection, createPurchase, completePurchase
 from .models import Book
 import hashlib
 from .util import librarian, admin as adminFilter
@@ -71,6 +72,17 @@ def verify_purchase():
         return jsonify({"status": "success"})
     return jsonify({"status": "error"})
 #### razorpay end
+
+@app.route("/api/sales_stats")
+@jwt_required()
+@adminFilter
+def sales_stats():
+    dt = datetime.datetime.now()
+    last_date_num = calendar.monthrange(dt.year, dt.month)[1]
+    last_date = f"{dt.year}-{dt.month:02d}-{dt.day:02d}"
+    first_date = f"{dt.year}-{dt.month:02d}-01"
+    data = purchaseHistory(first_date, last_date)
+    return jsonify(data)
 
 @app.route("/api/cache_test")
 @cache.cached(timeout=20)
@@ -289,6 +301,48 @@ def profile():
         books[i].start = issued
         books[i].end = issued + datetime.timedelta(days=maxBorrowTime())
     return render_template("profile.html", books=books, past=past, req=req,user=user)
+
+@app.route("/api/admin/comments/<int:cid>/delete")
+@jwt_required()
+@adminFilter
+def delete_comment_admin(cid):
+    deleteComment(cid)
+    return jsonify({"status": "success"})
+
+@app.route("/api/comments/<int:bid>/delete")
+@jwt_required()
+def delete_comment_api(bid):
+    c = getComment(curr_user.id, bid)
+    if c == None:
+        return jsonify({"status": "error", "msg": "Comment not found"})
+    deleteComment(c.id)
+    return jsonify({"status": "success"})
+
+@app.route("/api/book/<int:bid>/comment", methods=["POST"])
+@jwt_required()
+def add_comment_api(bid):
+    r = request.get_json()
+    comment = r["comment"]
+    #check if user has already commented
+    c = getComment(curr_user.id, bid)
+    if c != None:
+        return jsonify({"status": "error", "msg": "You have already commented"})
+    #check if user has rated
+    r = fetchRating(curr_user.id, bid)
+    if r == None:
+        return jsonify({"status": "error", "msg": "You need to rate the book first"})
+    # check if comment length is appropriate
+    if len(comment)>500:
+        return jsonify({"status": "error", "msg": "Comment too long"})
+    createComment(curr_user.id, bid, comment)
+    return jsonify({"status": "success"})
+
+@app.route("/api/book/<int:bid>/comments")
+@jwt_required()
+def comments_api(bid):
+    comments = getComments(bid)
+    
+    return jsonify(comments = comments)
 
 @app.route("/api/rate/book/<int:bid>")
 @jwt_required()
@@ -578,6 +632,45 @@ def adminchart():
     buff = getChartData()
     return send_file(buff, mimetype='image/jpg')
 
+@app.route("/vt")
+def testvt():
+    a = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcyMzAzODg4NSwianRpIjoiMWQ1YTRmYTItZThkOS00NWUzLWI4MjAtOTBiNWMxM2VkYjc5IiwidHlwZSI6ImFjY2VzcyIsInN1YiI6InRlc3QiLCJuYmYiOjE3MjMwMzg4ODUsImNzcmYiOiI3MGRlYTNjZC01OTEwLTQ1NzUtODExOS0zNjU3MzUxMTkzMmYiLCJleHAiOjE3MjQzMzQ4ODUsInJvbGUiOiJzdHVkZW50In0._UODyzJg9DpqUcAmp6RQDo1HQM7zCTEGW7HK5cgUx9c"
+    
+    decoded = decode_token(a)
+    #print(decoded["sub"])
+
+    return jsonify({"status": "success", "user": decoded["sub"]})
+uniq_ids = {}
+
+@app.route("/api/download")
+def download():
+    uid = request.args["id"]
+    if uid not in uniq_ids:
+        return jsonify({"status": "error", "msg": "Invalid id"})
+    bid = uniq_ids[uid]
+    return send_file(f"./static/pdfs/{bid}.pdf", as_attachment=False, download_name="book.pdf")
+
+@app.route("/api/book/<int:bid>/download", methods=["GET"])
+@jwt_required()
+def download_req(bid):
+    book = getBookByID(bid)
+    if book == None:
+        return jsonify({"status": "error", "msg": "User or book not found"})
+    ## check if user has purchased
+    if not checkPurchase(curr_user.id, bid):
+        #return send_file(f"./static/pdfs/{id}.pdf", as_attachment=True, download_name="book.pdf")
+        # check if user has issued
+        if not checkIssued(curr_user.id, bid):
+            return jsonify({"status": "error", "msg": "User has not issued this book"})
+        if curr_user.tier == 0:
+            return jsonify({"status": "error", "msg": "User is not allowed to download this book"})
+
+    ##create  a unique id for the download
+    uid = hashlib.md5(str(curr_user.id).encode('utf-8')).hexdigest()
+    uniq_ids[uid] = bid
+    return jsonify({"status": "success", "id": uid})
+    #return send_file(f"./static/pdfs/{id}.pdf", as_attachment=True, download_name="book.pdf")
+
 @app.route("/api/admin/chart")
 @jwt_required()
 @adminFilter
@@ -805,12 +898,13 @@ def my_details(uid):
     books = getIssued(uid)
     past = getPastIssued(uid)
     req = getRequested(uid)
+    pur = getPurchases(uid)
     for i in range(len(books)):
         issued = books[i].start
         books[i] = getBookByID(books[i].book).to_dict()
         books[i]["start"] = issued
         books[i]["end"] = issued + datetime.timedelta(days=maxBorrowTime())
-    return jsonify({"user": user.to_dict(), "books": books, "past": [i.to_dict() for i in past], "req": [i.to_dict() for i in req]})
+    return jsonify({"user": user.to_dict(), "books": books, "past": [i.to_dict() for i in past], "req": [i.to_dict() for i in req], "pur": [i.to_dict() for i in pur]})
 
 
 @app.route("/api/user_info")
@@ -821,12 +915,13 @@ def user_info_api():
     books = getIssued(uid)
     past = getPastIssued(uid)
     req = getRequested(uid)
+    pur = getPurchases(uid)
     for i in range(len(books)):
         issued = books[i].start
         books[i] = getBookByID(books[i].book).to_dict()
         books[i]["start"] = issued
         books[i]["end"] = issued + datetime.timedelta(days=maxBorrowTime())
-    return jsonify({"user": user.to_dict(), "books": books, "past": [i.to_dict() for i in past], "req": [i.to_dict() for i in req]})
+    return jsonify({"user": user.to_dict(), "books": books, "past": [i.to_dict() for i in past], "req": [i.to_dict() for i in req],"pur": [i.to_dict() for i in pur]})
 
 @app.route("/admin/user/<int:uid>")
 @login_required

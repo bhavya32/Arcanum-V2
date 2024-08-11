@@ -12,7 +12,8 @@ var userData = ref({
     user:{},
     books:[],
     past:[],
-    req:[]
+    req:[],
+    pur:[]
 })
 var isAdmin = !isNaN(userID)
 var fetchUrl = isNaN(userID)?'/api/user_info':('/api/user_info/' + userID.toString())
@@ -188,6 +189,35 @@ async function approveRequest(book_id){
       
   </div>
 
+  <div class="container" style="margin-bottom: 50px;">
+      <h1>Purchase History</h1>
+      <table id="issueList" class="table table-hover">
+          <thead>
+              <th>S. No.</th>
+              <th>Book Name</th>
+              <th>Purchase Date</th>
+              <th>Price</th>
+              
+          </thead>
+          <tbody>
+            <tr v-if="userData.pur.length == 0">
+                  <td colspan="5" class="text-muted">No books purchased.</td>
+                </tr>
+            
+              
+              <tr v-for="(book, index) in userData.pur" @click='router.push({ path: `/book/${book.book1.id}` })'>
+                  <td>{{index+1}}.</td>
+                  <td>{{book.book1.title}}</td>
+                  <td>{{dt(book.created_at)}}</td>
+                  <td>₹{{book.value}}</td>
+              </tr>
+              
+              
+          </tbody>
+      </table>
+      
+  </div>
+
   <div v-if="!isAdmin" class="container" style="margin-bottom: 50px;">
         <h2>Account Settings</h2>
         <div class="d-flex flex-row justify-content-between">
@@ -204,7 +234,8 @@ async function approveRequest(book_id){
 </template>
 <style scoped>
 tr {
-    cursor: pointer
+    cursor: pointer;
+    font-size: large
 }
 button {
     margin: 0px 10px
@@ -212,5 +243,9 @@ button {
 
 .info div{
     margin: 10px 10px
+}
+
+h1 {
+    margin-bottom: 15px
 }
 </style>
