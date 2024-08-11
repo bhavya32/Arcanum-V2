@@ -5,6 +5,7 @@ import fetchData from '../helper.js'
 import { AuthStore } from '../stores/main.js'
 import router from '../router/index.js'
 import API_URL from '../constants.js'
+import moment from 'moment'
 var s = AuthStore()
 var dashVars = ref({
     issued: 0,
@@ -41,7 +42,7 @@ var exportsHistory = ref([])
 var monthlyDisabled = ref(false)
 
 const month = new Date().toLocaleString('en-us',{month:'short'})
-
+var prevMonth = moment().subtract(1, 'months').format('MMM')
 
 ChartJS.register(ArcElement, Tooltip,Legend,Colors,CategoryScale,
   LinearScale,
@@ -289,7 +290,7 @@ async function updatePolicy(form) {
         <button class="btn btn-dark" :disabled="exportDisabled" @click="exportData()">{{exportDisabled? "Export Request Received" :"Export Activity History"}}</button>
         <button class="btn btn-dark" @click="viewExports()">View Recent Exports</button>
         <button class="btn btn-dark" :disabled="reminderDisabled" @click="sendReminder()">{{reminderDisabled? "Reminders queued" :"Send Reminders"}}</button>
-        <button class="btn btn-dark" :disabled="monthlyDisabled" @click="requestMonthlyReport()">{{monthlyDisabled? "Mailing Shortly": `Monthly Report - ${month}`}}</button>
+        <button class="btn btn-dark" :disabled="monthlyDisabled" @click="requestMonthlyReport()">{{monthlyDisabled? "Mailing Shortly": `Monthly Report - ${prevMonth}`}}</button>
     </div>
     </div>
     <div class="overlay" v-show="showOverlay">

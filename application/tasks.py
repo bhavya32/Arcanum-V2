@@ -1,9 +1,9 @@
 from application.workers import celery
-from datetime import datetime
+from datetime import datetime, timedelta
 from celery.schedules import crontab
 from application.database import db
-from application.models import History, User, Book, Section
-from application.dbFunctions import getAllHistory, getAllIssued, getMonthlyHistory, mostReadBook, getAllUsers, getAllBooks, getAllSections
+from application.models import User, Book, Section, Purchase
+from application.dbFunctions import getAllHistory, getAllIssued, getTimedHistory, mostReadBook, getAllUsers, getAllBooks, getAllSections, getPreviousMonthRange, getPurchasesFiltered
 import csv
 import os
 import smtplib
@@ -22,34 +22,38 @@ def setup_periodic_tasks(sender, **kwargs):
 
 @celery.task
 def monthly_activity():
-    data = getMonthlyHistory()
+    f,l = getPreviousMonthRange()
+    data = getTimedHistory(f,l)
     ## send email to librarian with monthly report
     receivers = ["librarian@arcanum.in"]
     total_reads = len(data)
     ## find the most read book
-    most_read = mostReadBook()
-    users_added = User.query.filter(User.created_at >= datetime.now().replace(day=1)).count()
-    books_added = Book.query.filter(Book.date_created >= datetime.now().replace(day=1)).count()
-    sections_added = Section.query.filter(Section.date_created >= datetime.now().replace(day=1)).count()
+    pv = getPurchasesFiltered(f,l)
+    most_read, most_read_count = mostReadBook(f,l)
+    users_added = User.query.filter(User.created_at >= f).filter(User.created_at <= l).count()
+    books_added = Book.query.filter(Book.date_created >= f).filter(User.created_at <= l).count()
+    sections_added = Section.query.filter(Section.date_created >= f).filter(Section.date_created <= l).count()
+
     user_count = len(getAllUsers())
     book_count = len(getAllBooks())
     section_count = len(getAllSections())
     ##highest rated books
     top_five_books = Book.query.order_by(Book.rating.desc()).limit(5).all()
     top_five_books = "\n".join([(str(ind+1) + ". " + i.title) for ind, i in enumerate(top_five_books)])
-    month_name = datetime.now().strftime("%B")
+    month_name = f.strftime("%B")
     text = f"""
 Dear Librarian,
 Here is the monthly report for the library:
 
 Monthly reads: {total_reads}
-Most read book in {month_name}: {most_read.title} with {most_read.reads} reads
+Most read book in {month_name}: {most_read.title} with {most_read_count} reads
+Sales: ₹{pv}
 
 Users added: {users_added}
 Books added: {books_added}
 Sections added: {sections_added}
 
-Top five books:
+Top five books (all time):
 {top_five_books}
 
 Total users: {user_count}

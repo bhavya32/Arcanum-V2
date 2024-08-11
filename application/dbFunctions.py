@@ -53,6 +53,11 @@ def purchaseHistory(start, end):
         labels.append(i[0])
     return [labels, data]
 
+def getPurchasesFiltered(f,l):
+    p = Purchase.query.filter(Purchase.created_at >= f).filter(Purchase.created_at <= l).filter(Purchase.status ==1)
+    v= p.with_entities(func.sum(Purchase.value)).scalar()
+    return v
+
 
 def getPurchases(uid):
     return Purchase.query.filter_by(user_id=uid, status=1).all()
@@ -552,23 +557,38 @@ def getAllHistory():
         r.append(a)
     return r
 
-def getMonthlyHistory():
+def getTimedHistory(f,l):
     r = []
-    for i in History.query.filter(History.end > datetime.datetime.now().replace(day=1, hour=0)).all():
+    for i in History.query.filter(History.end >= f).filter(History.end <= l).all():
         a = [i,getUserByID(i.user),getBookByID(i.book)]
         r.append(a)
     return r
 
-def getMonthlyReads(book_id):
+def getPreviousMonthRange():
+    now = datetime.datetime.now()
+    ft = datetime.datetime(now.year, now.month, 1)
+    l = datetime.datetime(now.year, now.month, 1) - datetime.timedelta(days=1)
+    l = l.replace(hour=23, minute=59, second=59)
+    f = datetime.datetime(l.year, l.month, 1)
+    return f, l
+
+
+def getTimedReads(book_id, f, l):
     r = []
-    for i in History.query.filter(History.end > datetime.datetime.now().replace(day=1, hour=0)).filter_by(book=book_id).all():
+    ## get monthly reads for last month
+    f,l = getPreviousMonthRange()
+    his = History.query.filter(History.end >= f).filter(History.end <= l).filter_by(book=book_id).all()
+    #for i in History.query.filter(History.end > datetime.datetime.now().replace(day=1, hour=0)).filter_by(book=book_id).all():
+    for i in his:
+        
         a = [i,getUserByID(i.user),getBookByID(i.book)]
         r.append(a)
     return len(r)
 
-def mostReadBook():
+def mostReadBook(f,l):
     r = []
+    
     for i in Book.query.all():
-        a = [i, getMonthlyReads(i.id)]
+        a = [i, getTimedReads(i.id, f, l)]
         r.append(a)
-    return max(r, key=lambda x: x[1])[0]
+    return max(r, key=lambda x: x[1])
