@@ -45,7 +45,7 @@ fetch(API_URL + '/api/home_books')
                   alt="Image not Set" :src="`${API_URL}/static/sections/${s.id}`">
                 <div class="card-body">
                   <h5 class="card-title text-center">{{s.name}}</h5>
-                  <a href="/section/{{s.id}}" class=" stretched-link hide-slink"></a>
+                  <RouterLink :to="`/section/${s.id}`" class=" stretched-link hide-slink"></RouterLink>
                 </div>
               </div>
               
@@ -77,7 +77,8 @@ fetch(API_URL + '/api/home_books')
             :src="`${API_URL}/static/books/${s.id}`">
           <div style="padding-top: 10px;">
             <h5 class="card-title text-center">{{s.title}}</h5>
-            <a href="/book/{{s.id}}" class=" stretched-link hide-slink"></a>
+            <RouterLink :to="`/book/${s.id}`" class=" stretched-link hide-slink"></RouterLink>
+            
           </div>
         </div>
         
@@ -95,7 +96,7 @@ fetch(API_URL + '/api/home_books')
           :src="`${API_URL}/static/books/${s.id}`">
           <div style="padding-top: 10px;">
             <h5 class="card-title text-center">{{s.title}}</h5>
-            <a href="/book/{{s.id}}" class=" stretched-link hide-slink"></a>
+            <RouterLink :to="`/book/${s.id}`" class=" stretched-link hide-slink"></RouterLink>
           </div>
         </div>
       </div>

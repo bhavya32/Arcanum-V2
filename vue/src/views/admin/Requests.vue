@@ -1,10 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import {useRoute,  RouterLink} from 'vue-router'
-import { AuthStore } from '@/stores/main.js'
 import fetchData from '@/helper.js'
-import { computed } from 'vue'
-import router from '@/router/index.js'
+
 
 var requests = ref([])
 

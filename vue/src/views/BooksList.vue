@@ -41,12 +41,14 @@ async function fetchDataDirect(params){
 }
 
 function search(form){
-  fetchDataDirect({
+  var o = {
         sort: form.target.elements.sort.value,
         book: form.target.elements.book.value,
         author: form.target.elements.author.value,
         section: form.target.elements.section.value
-    })
+    }
+    console.log(o)
+  fetchDataDirect(o)
 }
 fetchSections()
 fetchDataDirect(last)

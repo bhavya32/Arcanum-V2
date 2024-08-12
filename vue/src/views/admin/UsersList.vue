@@ -1,11 +1,9 @@
 <script setup>
 import { ref } from 'vue'
-import API_URL from '@/constants';
-import { AuthStore } from '../../stores/main.js'
-import {useRoute, RouterLink} from 'vue-router'
+
 import router from '../../router/index.js'
 import fetchData from '../../helper.js'
-var s = AuthStore()
+
 
 var users_list = ref([])
 

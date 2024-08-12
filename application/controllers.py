@@ -2,7 +2,7 @@ import calendar
 import datetime
 import os
 import time
-from flask import jsonify, request, redirect, send_file, url_for
+from flask import jsonify, request, redirect, send_file, send_from_directory, url_for
 from flask import render_template
 from flask import current_app as app
 from werkzeug.utils import secure_filename
@@ -710,7 +710,6 @@ def sections_list():
     return render_template("sections.html", sc = sections)
 
 @app.route("/api/search")
-@cache.cached(timeout=10)
 def search_books():
     fbook = "%%"
     fauth = ""
@@ -1064,3 +1063,7 @@ def dashboard():
         return redirect(url_for("profile"))
     else:
         return redirect(url_for("admin"))
+
+@app.route('/<path:filename>')
+def custom_static(filename):
+    return send_from_directory('static/test', filename)

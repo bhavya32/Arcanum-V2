@@ -1,24 +1,6 @@
 @import url("https://netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css");
-/*@import './base.css';*/
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");
 
-/*
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
-  
-}
-
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 44%, 19%, 0.2);
-    
-  }
-}
-*/
 
 html {
     font-family: Helvetica, sans-serif;

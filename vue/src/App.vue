@@ -15,5 +15,6 @@ var loggedin = false;
 <style scoped>
 .body-margin{
   margin-top: 70px;
+  height:90%;
 }
 </style>
