@@ -5,3 +5,4 @@ static/pdfs/*
 static/sections/*
 dist
 node_modules
+celerybeat-schedule

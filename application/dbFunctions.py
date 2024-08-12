@@ -1,15 +1,8 @@
-import io
 import datetime
 import re
 from .models import Author, Authorship, Book, History, Issued, Rating, Request, Section_content, User, Section, db, Policy, Purchase, Comment
 from sqlalchemy import func, desc,asc
-
-from matplotlib import pyplot as plt
-import numpy as np
 from textwrap import wrap
-import math
-import matplotlib
-matplotlib.use('agg')
 
 def deleteComment(id):
     c = Comment.query.filter_by(id=id).first()
@@ -532,23 +525,7 @@ def getChartData_api():
     group = [ '\n'.join(wrap(l, 20)) for l in group ]
     return {"group":group, "data":data}
 
-def getChartData():
-    query = "select books.title, count(books.title) as num from issued,books where books.id = issued.book GROUP BY title order by num desc limit 5"
-    r = db.session.execute(db.text(query))
-    group = []
-    data = []
-    total = 0
-    for i in r:
-        group.append(i[0])
-        data.append(i[1])
-        total += i[1]
-    group = [ '\n'.join(wrap(l, 20)) for l in group ]
-    plt.figure(figsize=(5, 3.5))
-    plt.pie(data, labels=group, autopct=lambda x : int(x * total // 100))
-    buff = io.BytesIO()
-    plt.savefig(buff, format="png")
-    buff.seek(0)
-    return buff
+
 
 def getAllHistory():
     r = []

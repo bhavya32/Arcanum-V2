@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from celery.schedules import crontab
 from application.database import db
 from application.models import User, Book, Section, Purchase
-from application.dbFunctions import getAllHistory, getAllIssued, getTimedHistory, mostReadBook, getAllUsers, getAllBooks, getAllSections, getPreviousMonthRange, getPurchasesFiltered
+from application.dbFunctions import getAllHistory, getAllIssued, getTimedHistory, mostReadBook, getAllUsers, getAllBooks, getAllSections, getPreviousMonthRange, getPurchasesFiltered, returnBook
 import csv
 import os
 import smtplib
@@ -75,7 +75,19 @@ def return_reminder():
     print("Reminder task")
     data = getAllIssued()
     for issued in data:
-        remaining_days = (issued[3] - datetime.now()).days
+        remaining_days = (issued[3] - datetime.now()).days + 1
+        if remaining_days < 0:
+            returnBook(issued[1].id, issued[2].id)
+            receivers = [issued[1].email]
+            text = f"Dear {issued[1].username},\n\nThis is a notification that the book {issued[2].title} has been auto-returned as it was overdue.\n\nRegards,\nLibrarian"
+            message = MIMEText(text, 'plain')
+            message['Subject'] = f"Auto-returned: {issued[2].title}"
+            message['From'] = sender
+            message['To'] = issued[1].email
+
+            smtpObj.sendmail(sender, receivers, message.as_string())
+            continue
+
         if remaining_days <= reminder_days:
                 
             receivers = [issued[1].email]
